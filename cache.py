@@ -1,15 +1,10 @@
-
-
 from mimetypes import init
 
-
-
-
 class cache:
-    def __init__(self, CACHE_SIZE = 100, method="FIFO"):  
+    def __init__(self, Page_Requests, CACHE_SIZE = 100, method="FIFO"):  
+        self.PAGE_REQUESTS = Page_Requests
         self.CACHE_SIZE = CACHE_SIZE
         self.CACHE_METHOD = method
-
 
 
     def start_caching(self):
@@ -37,3 +32,12 @@ class cache:
 
     def LFU(self):
         return 0
+
+
+
+
+
+
+if __name__ == "__main__":
+    n = 100
+    print("hi")
