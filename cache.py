@@ -1,9 +1,10 @@
 from mimetypes import init
+from time import clock_gettime
 
 class cache:
-    def __init__(self, Page_Requests, CACHE_SIZE = 100, method="FIFO"):  
-        self.PAGE_REQUESTS = Page_Requests
-        self.CACHE_SIZE = CACHE_SIZE
+    def __init__(self, page_requests, cache_size = 100, method="FIFO"):  
+        self.PAGE_REQUESTS = page_requests
+        self.CACHE_SIZE = cache_size
         self.CACHE_METHOD = method
 
 
@@ -18,6 +19,8 @@ class cache:
             self.LFU()
         else:
             return "error"
+        
+        self.LFD()
         return 0
 
 
@@ -31,6 +34,9 @@ class cache:
         return 0
 
     def LFU(self):
+        return 0
+    
+    def LFD(self):
         return 0
 
 
