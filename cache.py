@@ -17,8 +17,7 @@ class cache:
             self.LRU()
         elif self.CACHE_METHOD == "LFU":
             self.LFU()
-        else:
-            return "error"
+
         
         self.LFD()
         return 0
@@ -40,7 +39,8 @@ class cache:
         return 0
 
 
-
+    def query_generator():
+        return 0
 
 
 
