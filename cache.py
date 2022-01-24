@@ -39,10 +39,6 @@ class cache:
         return 0
 
 
-    def query_generator():
-        return 0
-
-
 
 if __name__ == "__main__":
     n = 100
