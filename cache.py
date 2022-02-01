@@ -1,47 +1,61 @@
 from mimetypes import init
-from time import clock_gettime
+from time import clock_gettime, sleep
 import random
 
+PAGE_NUM = 20
+PAGE_REQUEST_NUM = 100
+CACHE_SIZE = 5
+
 class cache:
-    def __init__(self, total_page_num, page_request_count, cache_size = 100):
-        self.total_page_num = total_page_num
+    def __init__(self, page_num, page_request_count, cache_size = 100):
+        # number of distinct pages
+        self.page_num = page_num
+        # number of page requests
         self.page_request_count = page_request_count
+        # the size of cache
         self.cache_size = cache_size
-        self.requests = self.generate_requests(total_page_num, page_request_count)
+        # a series of page requests
+        self.requests = None
 
-
+    # setter for page_num, page_request_count, and cache_size
     def reset_test_values(self, total_page_num, page_request_count, cache_size):
-        self.total_page_num = total_page_num
+        self.page_num = total_page_num
         self.page_request_count = page_request_count
         self.cache_size = cache_size        
 
+    # randomly generate a series of page requests, and set the page requests
     def generate_requests(self):
-        output = []
+        requests = []
         for _ in range(self.page_request_count):
-            output.append(random.randint(1, self.total_page_num))
+            requests.append(random.randint(1, self.page_num))
+        
+        self.set_requests(requests)
 
-        self.requests = output
+    # setter for page requests
+    def set_requests(self, requests):
+        self.requests = requests
 
-
-    def start_caching(self, method):
-        if method == "FIFO":
-            self.FIFO()
-        elif method == "LIFO":
-            self.LIFO()
-        elif method == "LRU":
-            self.LRU()
-        elif method == "LFU":
-            self.LFU()
-        elif method == "LFD":
-            self.LFD()
-        else:
-            print("Error: Please input a valid caching method")
-
-        return 0
-
-
+    # simulate a cache with a First In First Out caching Policy
     def FIFO(self):
-        return 0
+        summary = open("FIFO_output.txt", "w")
+        summary.write("FIFO cache with page requests:\n" + str(self.requests) + "\n\n")        
+
+        cache = []
+        miss_count = 0
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            if page not in cache:
+                miss_count += 1
+                if len(cache) == self.cache_size:
+                    cache = cache[1:]
+                    
+                cache.append(page)
+                summary.write("Cache miss! Current Cache: " + str(cache) + "\n")
+            else:
+                summary.write("Cache hit on page " + str(page) + "! Current Cache: " + str(cache) + "\n")
+
+        summary.write("\nTotal miss count: "  + str(miss_count) +" out of " + str(self.page_request_count) + " requests.\n")
+        summary.close()
     
     def LIFO(self):
         return 0
@@ -63,7 +77,7 @@ class cache:
         self.PAGE_REQUESTS_COUNT = page_request_count
 
 
-
 if __name__ == "__main__":
-    n = 100
-    print("hi")
+    mycache = cache(PAGE_NUM, PAGE_REQUEST_NUM, CACHE_SIZE)
+    mycache.generate_requests()
+    mycache.FIFO()
