@@ -11,4 +11,5 @@ to process a series of page requests and record the miss rate to result.txt.
 The cache size can be modified.
 
 ## query_generator.py
-The query_generator.py generates a random page request based on the total number of different pages.
+The query_generator.py uses the random library to generate a series of pseudo random page requests 
+based on the total number of different pages.
