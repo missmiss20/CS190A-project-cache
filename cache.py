@@ -1,5 +1,6 @@
 from collections import defaultdict, deque
 from mimetypes import init
+from sortedcontainers import SortedSet
 from time import clock_gettime, sleep
 import random
 
@@ -82,15 +83,14 @@ class cache:
     def LFU(self):
         return 0
     
-    # LFD in O(NK) time, where N is the number of requests and K is the cache size
-    def LFD(self):
-        summary = self.get_output_handle("LFD")
+    def LFD2(self):
+        summary = self.get_output_handle("LFD2")
 
         # Precalculate indices of each page
         occurrences = defaultdict(lambda : deque())
         for i in range(self.page_request_count):
             occurrences[self.requests[i]].append(i)
-            
+
         cache = set() 
         miss_count = 0
         for i in range(self.page_request_count):
@@ -113,6 +113,40 @@ class cache:
 
         self.write_summary(miss_count, summary) 
         summary.close()
+    
+    # LFD in O(NlogK) time, where N is the number of requests and K is the cache size
+    def LFD(self):
+        summary = self.get_output_handle("LFD")
+
+        # Precalculate indices of each page
+        occurrences = defaultdict(lambda : deque())
+        for i in range(self.page_request_count):
+            occurrences[self.requests[i]].append(i)
+            
+        next_occurrence = lambda page : occurrences[page][0] if len(occurrences[page]) > 0 else float('inf')
+
+        cache = set()
+        prio_set = SortedSet() # contains (next_occurrence, page)
+        miss_count = 0
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            miss = False
+            occurrences[page].popleft()
+            if page not in cache:
+                miss_count += 1
+                miss = True
+                if len(cache) == self.cache_size:
+                    cache.remove(prio_set.pop()[1])
+                cache.add(page)
+            else:
+                prio_set.remove((i, page))
+            prio_set.add((next_occurrence(page), page))
+
+            self.write_action(miss, page, cache, summary)
+
+
+        self.write_summary(miss_count, summary) 
+        summary.close()
            
 
     def set_cache_size(self, cache_size):
@@ -127,3 +161,4 @@ if __name__ == "__main__":
     mycache.generate_requests()
     mycache.FIFO()
     mycache.LFD()
+    mycache.LFD2()
