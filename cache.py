@@ -38,7 +38,7 @@ class cache:
         
     def get_output_handle(self, policy):
         summary = open(f"{policy}_output.txt", "w")
-        summary.write(f"{policy} cache with apge requests:\n{self.requests}\n\n")
+        summary.write(f"{policy} cache with page requests:\n{self.requests}\n\n")
         return summary
         
     def write_action(self, miss, page, cache, summary):
