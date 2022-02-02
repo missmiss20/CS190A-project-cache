@@ -129,4 +129,3 @@ if __name__ == "__main__":
     mycache.generate_requests()
     mycache.FIFO()
     mycache.LFD()
-    mycache.LFD2()
