@@ -83,37 +83,6 @@ class cache:
     def LFU(self):
         return 0
     
-    def LFD2(self):
-        summary = self.get_output_handle("LFD2")
-
-        # Precalculate indices of each page
-        occurrences = defaultdict(lambda : deque())
-        for i in range(self.page_request_count):
-            occurrences[self.requests[i]].append(i)
-
-        cache = set() 
-        miss_count = 0
-        for i in range(self.page_request_count):
-            page = self.requests[i]
-            miss = False
-            if page not in cache:
-                miss_count += 1
-                miss = True
-                if len(cache) == self.cache_size:
-                    # Choose the longest forward element
-                    (lfe, dist) = (0, 0)
-                    for candidate in cache:
-                        next_occurrence = occurrences[candidate][0] if len(occurrences[candidate]) > 0 else float('inf')
-                        if next_occurrence > dist:
-                            (lfe, dist) = (candidate, next_occurrence)
-                    cache.remove(lfe)
-                cache.add(page)
-            self.write_action(miss, page, cache, summary)
-            occurrences[page].popleft()
-
-        self.write_summary(miss_count, summary) 
-        summary.close()
-    
     # LFD in O(NlogK) time, where N is the number of requests and K is the cache size
     def LFD(self):
         summary = self.get_output_handle("LFD")
@@ -143,7 +112,6 @@ class cache:
             prio_set.add((next_occurrence(page), page))
 
             self.write_action(miss, page, cache, summary)
-
 
         self.write_summary(miss_count, summary) 
         summary.close()
