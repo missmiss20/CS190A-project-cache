@@ -62,6 +62,9 @@ def generate_ratio_distribution(page_num: int, query_length: int, radios: list[i
 if __name__ == "__main__":
     page_num = 100
     query_length = 100000
+
+    # tests to validate generated page requests 
+
     # output = generate_normal_distribution(page_num, query_length)
     # file = open("a.txt","w")
     # file.write(str(output))
