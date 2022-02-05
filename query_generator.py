@@ -24,6 +24,8 @@ def generate_normal_distribution(page_num, query_length):
 
     return output
 
+# generate #query_length page requests with a triangular distribution
+# triangle begin from 'left', end at 'page_num+1', with height at 'mode'
 def generate_triangular_distribution(page_num, query_length, left=1, mode=1):
     output = []
     i = 0
@@ -34,14 +36,17 @@ def generate_triangular_distribution(page_num, query_length, left=1, mode=1):
 
     return output
 
-def generate_ratio_distribution(page_num: int, query_length: int, frequency_radio: list[int]):
-    if page_num != len(frequency_radio):
+# generate #query_length page requests with fix radios
+# 'radios' contains the radio of the appreaence frequency of all pages
+# Ex: 5 pages, with radios = [4,2,2,1,1], the page 1 will apprear 4 time as frequent as page 4 and 5
+def generate_ratio_distribution(page_num: int, query_length: int, radios: list[int]):
+    if page_num != len(radios):
         print("Error")
         return []
 
     draw_bag = []
-    for i in range(len(frequency_radio)):
-        for j in range(frequency_radio[i]):
+    for i in range(len(radios)):
+        for j in range(radios[i]):
             draw_bag.append(i+1)
 
     length = len(draw_bag)
