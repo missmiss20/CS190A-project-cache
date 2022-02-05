@@ -31,7 +31,7 @@ def generate_triangular_distribution(page_num, query_length, left=1, mode=1):
 
     return output
 
-def generate_layered_distribution(page_num: int, query_length: int, frequency_radio: list[int]):
+def generate_ratio_distribution(page_num: int, query_length: int, frequency_radio: list[int]):
     if page_num != len(frequency_radio):
         print("Error")
         return []
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # file = open("a.txt","w")
     # file.write(str(output))
 
-    frequency_radio = [4,2,2,1,1]
-    output = generate_layered_distribution(5, 20, frequency_radio)
-    file = open("a.txt","w")
-    file.write(str(output))
+    # frequency_radio = [4,2,2,1,1]
+    # output = generate_ratio_distribution(5, 20, frequency_radio)
+    # file = open("a.txt","w")
+    # file.write(str(output))
