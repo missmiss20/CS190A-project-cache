@@ -10,9 +10,12 @@ QUERY_LENGTH = 100
 def generate_normal_distribution(page_num, query_length):
     output = []
     i = 0
+    # generate almost mornal distribution
     while i < query_length:
         x = np.random.normal(page_num/2, page_num/6, 1)
         x = int(x)
+        # this function has a 0.02% chance to produce a out of bound page number, 
+        # wich will be discarded.
         if x < 1 or x > page_num:
             i-=1
         else:
