@@ -36,7 +36,8 @@ class cache:
     # setter for page requests
     def set_requests(self, requests):
         self.requests = requests
-        
+    
+    # three output writter functions
     def get_output_handle(self, policy):
         summary = open(f"{policy}_output.txt", "w")
         summary.write(f"{policy} cache with page requests:\n{self.requests}\n\n")
@@ -74,7 +75,27 @@ class cache:
         self.write_summary(miss_count, summary)
         summary.close()
     
+    # simulate a cache with a Last In First Out caching Policy
     def LIFO(self):
+        summary = self.get_output_handle("LIFO")
+        
+        cache = []
+        miss_count = 0
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            miss = False
+            if page not in cache:
+                miss = True
+                miss_count += 1
+                if len(cache) == self.cache_size:
+                    cache = cache[0:-1]
+                    
+                cache.append(page)
+
+            self.write_action(miss, page, cache, summary)
+
+        self.write_summary(miss_count, summary)
+        summary.close()
         return 0
     
     def LRU(self):
@@ -128,4 +149,5 @@ if __name__ == "__main__":
     mycache = cache(PAGE_NUM, PAGE_REQUEST_NUM, CACHE_SIZE)
     mycache.generate_requests()
     mycache.FIFO()
+    mycache.LIFO()
     mycache.LFD()
