@@ -32,12 +32,23 @@ def generate_triangular_distribution(page_num, query_length, left=1, mode=1):
     return output
 
 def generate_layered_distribution(page_num: int, query_length: int, frequency_radio: list[int]):
-    if page_num % len(frequency_radio) != 0:
+    if page_num != len(frequency_radio):
         print("Error")
         return []
 
+    draw_bag = []
+    for i in range(len(frequency_radio)):
+        for j in range(frequency_radio[i]):
+            draw_bag.append(i+1)
 
-    return 0
+    length = len(draw_bag)
+    print(draw_bag)
+    requests = []
+    for _ in range(query_length):
+        draw = np.random.randint(0, length-1)
+        requests.append(draw_bag[draw])
+    
+    return requests
 
 
 if __name__ == "__main__":
@@ -52,3 +63,6 @@ if __name__ == "__main__":
     # file.write(str(output))
 
     frequency_radio = [4,2,2,1,1]
+    output = generate_layered_distribution(5, 20, frequency_radio)
+    file = open("a.txt","w")
+    file.write(str(output))
