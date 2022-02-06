@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from mimetypes import init
 from sortedcontainers import SortedSet
-from time import clock_gettime, sleep
+#from time import clock_gettime, sleep
 import random
 
 PAGE_NUM = 20
@@ -98,7 +98,27 @@ class cache:
         summary.close()
         return 0
     
+    # simulate a cache with a Least Recently Used caching Policy
     def LRU(self):
+        summary = self.get_output_handle("LRU")
+        
+        cache = []
+        miss_count = 0
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            miss = False
+            if page not in cache:
+                miss = True
+                miss_count += 1
+                if len(cache) == self.cache_size:
+                    cache = cache[1:]
+                
+                cache.append(page)
+            
+            self.write_action(miss, page, cache, summary)
+        
+        self.write_summary(miss_count, summary)
+        summary.close()
         return 0
 
     def LFU(self):
@@ -151,3 +171,4 @@ if __name__ == "__main__":
     mycache.FIFO()
     mycache.LIFO()
     mycache.LFD()
+    mycache.LRU()
