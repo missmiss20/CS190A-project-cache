@@ -4,6 +4,8 @@ from sortedcontainers import SortedSet
 from time import clock_gettime, sleep
 import random
 
+from query_generator import *
+
 PAGE_NUM = 20
 PAGE_REQUEST_NUM = 100
 CACHE_SIZE = 5
