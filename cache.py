@@ -45,7 +45,7 @@ class cache:
         
     def write_action(self, miss, page, cache, summary):
         if miss:
-            summary.write("Cache miss!");
+            summary.write("Cache miss!")
         else:
             summary.write(f"Cache hit on page {page}!")
         summary.write(f" Current Cache: {cache}\n")
@@ -98,7 +98,32 @@ class cache:
         summary.close()
         return 0
     
+    #use array of size self.cache_size, simiar to FIFO except add to front of list and move page number to front of list on cache hit
+    #on cache miss with full cache, remove last element of list (least recent access) and insert new page to front
     def LRU(self):
+        summary = self.get_output_handle("LRU")
+
+        cache = []
+        miss_count = 0
+
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            miss = False
+            if page not in cache: #add to front, if needed remove last element
+                miss = True
+                miss_count += 1
+                if len(cache) == self.cache_size: #cache full, remove last element
+                    cache = cache[:-1]
+                    
+                cache.insert(0, page) #add to front, push everything else back
+            else: #move page from current location to front
+                cache.remove(page)
+                cache.insert(0,page)
+
+            self.write_action(miss, page, cache, summary)
+
+        self.write_summary(miss_count, summary)
+        summary.close()
         return 0
 
     def LFU(self):
@@ -151,3 +176,4 @@ if __name__ == "__main__":
     mycache.FIFO()
     mycache.LIFO()
     mycache.LFD()
+    mycache.LRU()
