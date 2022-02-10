@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from mimetypes import init
 from sortedcontainers import SortedSet
-from time import clock_gettime, sleep
+#from time import clock_gettime, sleep
 import random
 
 from query_generator import *
@@ -100,6 +100,7 @@ class cache:
         summary.close()
         return 0
     
+
     #use array of size self.cache_size, simiar to FIFO except add to front of list and move page number to front of list on cache hit
     #on cache miss with full cache, remove last element of list (least recent access) and insert new page to front
     def LRU(self):
