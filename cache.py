@@ -5,6 +5,8 @@ from sortedcontainers import SortedSet
 #from time import clock_gettime, sleep
 import random
 
+from query_generator import *
+
 PAGE_NUM = 20
 PAGE_REQUEST_NUM = 100
 CACHE_SIZE = 5
@@ -46,7 +48,7 @@ class cache:
         
     def write_action(self, miss, page, cache, summary):
         if miss:
-            summary.write("Cache miss!");
+            summary.write("Cache miss!")
         else:
             summary.write(f"Cache hit on page {page}!")
         summary.write(f" Current Cache: {cache}\n")
@@ -234,3 +236,4 @@ if __name__ == "__main__":
     mycache.LFD()
     mycache.LFU()
     mycache.Random()
+    mycache.LRU()
