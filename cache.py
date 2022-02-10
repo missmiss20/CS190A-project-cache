@@ -99,8 +99,34 @@ class cache:
         summary.close()
         return 0
     
+    #use array of size self.cache_size, simiar to FIFO except add to front of list and move page number to front of list on cache hit
+    #on cache miss with full cache, remove last element of list (least recent access) and insert new page to front
     def LRU(self):
+        summary = self.get_output_handle("LRU")
+
+        cache = []
+        miss_count = 0
+
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            miss = False
+            if page not in cache: #add to front, if needed remove last element
+                miss = True
+                miss_count += 1
+                if len(cache) == self.cache_size: #cache full, remove last element
+                    cache = cache[:-1]
+                    
+                cache.insert(0, page) #add to front, push everything else back
+            else: #move page from current location to front
+                cache.remove(page)
+                cache.insert(0,page)
+
+            self.write_action(miss, page, cache, summary)
+
+        self.write_summary(miss_count, summary)
+        summary.close()
         return 0
+
 
     # simulate a cache with a Least Frequently Used caching Policy
     def LFU(self):
@@ -167,7 +193,31 @@ class cache:
 
         self.write_summary(miss_count, summary) 
         summary.close()
-           
+    
+    # simulate a cache with a Random page eviction Policy
+    # if cache is full evict random page to replace with the new one
+    def Random(self):
+        summary = self.get_output_handle("Random")
+
+        cache = []
+        miss_count = 0
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            miss = False
+            if page not in cache:
+                miss = True
+                miss_count += 1
+                if len(cache) == self.cache_size:
+                    index = random.randint(0, self.cache_size - 1)
+                    cache[index] = page
+                    
+                else:
+                    cache.append(page)
+
+            self.write_action(miss, page, cache, summary)
+
+        self.write_summary(miss_count, summary)
+        summary.close()
 
     def set_cache_size(self, cache_size):
         self.CACHE_SIZE = cache_size
@@ -183,3 +233,4 @@ if __name__ == "__main__":
     mycache.LIFO()
     mycache.LFD()
     mycache.LFU()
+    mycache.Random()
