@@ -1,5 +1,6 @@
 from collections import defaultdict, deque
 from mimetypes import init
+from xmlrpc.client import MAXINT
 from sortedcontainers import SortedSet
 #from time import clock_gettime, sleep
 import random
@@ -129,8 +130,38 @@ class cache:
         summary.close()
         return 0
 
+    # simulate a cache with a Least Frequently Used caching Policy
     def LFU(self):
-        return 0
+        summary = self.get_output_handle("LFU")
+
+        cache = []
+        page_amount = dict()
+        miss_count = 0
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            miss = False
+            if page not in cache:
+                miss = True
+                miss_count += 1
+                if len(cache) == self.cache_size:
+                    LFU_count = MAXINT
+                    for element in page_amount:
+                        if LFU_count > page_amount[element]:
+                            LFU_count = page_amount[element]
+                            LFU_page = element
+                    
+                    cache.remove(LFU_page)
+                    page_amount.pop(LFU_page)
+                    
+                cache.append(page)
+                page_amount[page] = 1
+            else:
+                page_amount[page] += 1
+            
+            self.write_action(miss, page, cache, summary)
+
+        self.write_summary(miss_count, summary)
+        summary.close()
     
     # LFD in O(NlogK) time, where N is the number of requests and K is the cache size
     def LFD(self):
@@ -179,4 +210,5 @@ if __name__ == "__main__":
     mycache.FIFO()
     mycache.LIFO()
     mycache.LFD()
+    mycache.LFU()
     mycache.LRU()
