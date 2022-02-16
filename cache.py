@@ -128,6 +128,48 @@ class cache:
         self.write_summary(miss_count, summary)
         summary.close()
         return 0
+    
+    #use 2 arrays of size self.cache_size, one for pages, one for markings, append new pages to back until full, then follow 1-bit lru
+    def Rand_1Bit_LRU(self):
+        summary = self.get_output_handle("Randomized_1Bit_LRU")
+
+        cache = []
+        markings = [] #bools: true = marked, false = unmarked
+        miss_count = 0
+
+        for i in range(self.page_request_count):
+            page = self.requests[i]
+            miss = False
+            if page not in cache: #if not full add to back, else replace random unmarked, else unmark all then replace random
+                miss = True
+                miss_count += 1
+                unmarked = list()
+                for a,b in enumerate(markings):
+                    if(not b):
+                        unmarked.append(a)
+                
+                if len(cache) < self.cache_size: #just add to end of cache
+                    cache.append(page)
+                    markings.append(True)
+                elif(len(unmarked)>0): #at least one element of cache is unmarked, replace one random unmarked element
+                    replace_ind = random.choice(unmarked)
+                    cache[replace_ind] = page
+                    markings[replace_ind] = True
+                else: #set all to unmarked then pick a random unmarked to replace
+                    for a in range(len(markings)):
+                        markings[a] = False
+                    replace_ind = random.randint(0,len(cache)-1)
+                    cache[replace_ind] = page
+                    markings[replace_ind] = True
+            else: #cache hit, remark this page if needed
+                ind = cache.index(page)
+                markings[ind] = True
+
+            self.write_action(miss, page, cache, summary)
+
+        self.write_summary(miss_count, summary)
+        summary.close()
+        return 0
 
 
     # simulate a cache with a Least Frequently Used caching Policy
@@ -237,3 +279,4 @@ if __name__ == "__main__":
     mycache.LFU()
     mycache.Random()
     mycache.LRU()
+    mycache.Rand_1Bit_LRU()
