@@ -2,6 +2,7 @@ from collections import defaultdict, deque
 from mimetypes import init
 from xmlrpc.client import MAXINT
 from sortedcontainers import SortedSet
+from lru_list import LRUList
 #from time import clock_gettime, sleep
 import random
 
@@ -11,8 +12,9 @@ PAGE_NUM = 20
 PAGE_REQUEST_NUM = 100
 CACHE_SIZE = 5
 
+
 class cache:
-    def __init__(self, page_num, page_request_count, cache_size = 100):
+    def __init__(self, page_num, page_request_count, cache_size=100):
         # number of distinct pages
         self.page_num = page_num
         # number of page requests
@@ -26,35 +28,37 @@ class cache:
     def reset_test_values(self, total_page_num, page_request_count, cache_size):
         self.page_num = total_page_num
         self.page_request_count = page_request_count
-        self.cache_size = cache_size        
+        self.cache_size = cache_size
 
     # randomly generate a series of page requests, and set the page requests
     def generate_requests(self):
         requests = []
         for _ in range(self.page_request_count):
             requests.append(random.randint(1, self.page_num))
-        
+
         self.set_requests(requests)
 
     # setter for page requests
     def set_requests(self, requests):
         self.requests = requests
-    
+
     # three output writter functions
     def get_output_handle(self, policy):
         summary = open(f"{policy}_output.txt", "w")
-        summary.write(f"{policy} cache with page requests:\n{self.requests}\n\n")
+        summary.write(
+            f"{policy} cache with page requests:\n{self.requests}\n\n")
         return summary
-        
+
     def write_action(self, miss, page, cache, summary):
         if miss:
             summary.write("Cache miss!")
         else:
             summary.write(f"Cache hit on page {page}!")
         summary.write(f" Current Cache: {cache}\n")
-    
+
     def write_summary(self, miss_count, summary):
-        summary.write(f"\nTotal miss count: {miss_count} out of {self.page_request_count} requests.\n")
+        summary.write(
+            f"\nTotal miss count: {miss_count} out of {self.page_request_count} requests.\n")
 
     # simulate a cache with a First In First Out caching Policy
     def FIFO(self):
@@ -70,7 +74,7 @@ class cache:
                 miss_count += 1
                 if len(cache) == self.cache_size:
                     cache = cache[1:]
-                    
+
                 cache.append(page)
 
             self.write_action(miss, page, cache, summary)
@@ -82,7 +86,7 @@ class cache:
     # simulate a cache with a Last In First Out caching Policy
     def LIFO(self):
         summary = self.get_output_handle("LIFO")
-        
+
         cache = []
         miss_count = 0
         for i in range(self.page_request_count):
@@ -93,7 +97,7 @@ class cache:
                 miss_count += 1
                 if len(cache) == self.cache_size:
                     cache = cache[0:-1]
-                    
+
                 cache.append(page)
 
             self.write_action(miss, page, cache, summary)
@@ -113,16 +117,17 @@ class cache:
         for i in range(self.page_request_count):
             page = self.requests[i]
             miss = False
-            if page not in cache: #add to front, if needed remove last element
+            if page not in cache:  # add to front, if needed remove last element
                 miss = True
                 miss_count += 1
-                if len(cache) == self.cache_size: #cache full, remove last element
+                if len(cache) == self.cache_size:  # cache full, remove last element
                     cache = cache[:-1]
-                    
-                cache.insert(0, page) #add to front, push everything else back
-            else: #move page from current location to front
+
+                # add to front, push everything else back
+                cache.insert(0, page)
+            else:  # move page from current location to front
                 cache.remove(page)
-                cache.insert(0,page)
+                cache.insert(0, page)
 
             self.write_action(miss, page, cache, summary)
 
@@ -172,8 +177,8 @@ class cache:
         summary.close()
         return 0
 
-
     # simulate a cache with a Least Frequently Used caching Policy
+
     def LFU(self):
         summary = self.get_output_handle("LFU")
 
@@ -215,14 +220,15 @@ class cache:
         summary = self.get_output_handle("LFD")
 
         # Precalculate indices of each page
-        occurrences = defaultdict(lambda : deque())
+        occurrences = defaultdict(lambda: deque())
         for i in range(self.page_request_count):
             occurrences[self.requests[i]].append(i)
-            
-        next_occurrence = lambda page : occurrences[page][0] if len(occurrences[page]) > 0 else float('inf')
+
+        def next_occurrence(page): return occurrences[page][0] if len(
+            occurrences[page]) > 0 else float('inf')
 
         cache = set()
-        prio_set = SortedSet() # contains (next_occurrence, page)
+        prio_set = SortedSet()  # contains (next_occurrence, page)
         miss_count = 0
         for i in range(self.page_request_count):
             page = self.requests[i]
@@ -240,7 +246,7 @@ class cache:
 
             self.write_action(miss, page, cache, summary)
 
-        self.write_summary(miss_count, summary) 
+        self.write_summary(miss_count, summary)
         summary.close()
         return miss_count
 
@@ -260,7 +266,6 @@ class cache:
                 if len(cache) == self.cache_size:
                     index = random.randint(0, self.cache_size - 1)
                     cache[index] = page
-                    
                 else:
                     cache.append(page)
 
@@ -269,6 +274,67 @@ class cache:
         self.write_summary(miss_count, summary)
         summary.close()
         return miss_count
+
+    # adaptive cache replacement
+    # adapted from https://www.usenix.org/legacy/events/fast03/tech/full_papers/megiddo/megiddo.pdf
+    def ARC(self):
+        p = 0
+        t1, b1, t2, b2 = LRUList("t1"), LRUList(
+            "b1"), LRUList("t2"), LRUList("b2")
+
+        def replace(element):
+            if t1.size() > 0 and (t1.size() > p or (b2.contains(element) and t1.size() == p)):
+                b1.move_mru(t1.pop())
+            else:
+                b2.move_mru(t2.pop())
+
+        summary = self.get_output_handle("ARC")
+        miss_count = 0
+        for page in self.requests:
+            miss = False
+            if t1.contains(page):
+                t1.remove(page)
+                t2.move_mru(page)
+                continue
+            elif t2.contains(page):
+                t2.move_mru(page)
+                continue
+
+            miss = True
+            miss_count += 1
+            if b1.contains(page):
+                p = min(p + max(1, b2.size() / b1.size()), self.cache_size)
+                replace(page)
+                b1.remove(page)
+                t2.move_mru(page)
+            elif b2.contains(page):
+                p = max(p - max(1, b1.size() / b2.size()), 0)
+                replace(page)
+                b2.remove(page)
+                t2.move_mru(page)
+            else:
+                if t1.size() + b1.size() == self.cache_size:
+                    if t1.size() < self.cache_size:
+                        b1.pop()
+                        replace(page)
+                    else:
+                        t1.pop()
+                elif t1.size() + b1.size() < self.cache_size:
+                    total_size = t1.size() + t2.size() + b1.size() + b2.size()
+                    if total_size >= self.cache_size:
+                        if total_size == 2 * self.cache_size:
+                            b2.pop()
+                        replace(page)
+
+                t1.move_mru(page)
+
+            if miss:
+                miss_count += 1
+
+            self.write_action(
+                miss, page, {**t1.get_cache(), **t2.get_cache()}.keys(), summary)
+        self.write_summary(miss_count, summary)
+        summary.close()
 
     def set_cache_size(self, cache_size):
         self.CACHE_SIZE = cache_size
@@ -287,3 +353,4 @@ if __name__ == "__main__":
     mycache.Random()
     mycache.LRU()
     mycache.Rand_1Bit_LRU()
+    mycache.ARC()
