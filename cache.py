@@ -77,6 +77,7 @@ class cache:
 
         self.write_summary(miss_count, summary)
         summary.close()
+        return miss_count
     
     # simulate a cache with a Last In First Out caching Policy
     def LIFO(self):
@@ -99,7 +100,7 @@ class cache:
 
         self.write_summary(miss_count, summary)
         summary.close()
-        return 0
+        return miss_count
     
     #use array of size self.cache_size, simiar to FIFO except add to front of list and move page number to front of list on cache hit
     #on cache miss with full cache, remove last element of list (least recent access) and insert new page to front
@@ -127,7 +128,7 @@ class cache:
 
         self.write_summary(miss_count, summary)
         summary.close()
-        return 0
+        return miss_count
 
 
     # simulate a cache with a Least Frequently Used caching Policy
@@ -162,6 +163,7 @@ class cache:
 
         self.write_summary(miss_count, summary)
         summary.close()
+        return miss_count
     
     # LFD in O(NlogK) time, where N is the number of requests and K is the cache size
     def LFD(self):
@@ -195,7 +197,8 @@ class cache:
 
         self.write_summary(miss_count, summary) 
         summary.close()
-    
+        return miss_count
+
     # simulate a cache with a Random page eviction Policy
     # if cache is full evict random page to replace with the new one
     def Random(self):
@@ -220,6 +223,7 @@ class cache:
 
         self.write_summary(miss_count, summary)
         summary.close()
+        return miss_count
 
     def set_cache_size(self, cache_size):
         self.CACHE_SIZE = cache_size
