@@ -295,41 +295,36 @@ class cache:
             if t1.contains(page):
                 t1.remove(page)
                 t2.move_mru(page)
-                continue
             elif t2.contains(page):
                 t2.move_mru(page)
-                continue
-
-            miss = True
-            miss_count += 1
-            if b1.contains(page):
-                p = min(p + max(1, b2.size() / b1.size()), self.cache_size)
-                replace(page)
-                b1.remove(page)
-                t2.move_mru(page)
-            elif b2.contains(page):
-                p = max(p - max(1, b1.size() / b2.size()), 0)
-                replace(page)
-                b2.remove(page)
-                t2.move_mru(page)
             else:
-                if t1.size() + b1.size() == self.cache_size:
-                    if t1.size() < self.cache_size:
-                        b1.pop()
-                        replace(page)
-                    else:
-                        t1.pop()
-                elif t1.size() + b1.size() < self.cache_size:
-                    total_size = t1.size() + t2.size() + b1.size() + b2.size()
-                    if total_size >= self.cache_size:
-                        if total_size == 2 * self.cache_size:
-                            b2.pop()
-                        replace(page)
-
-                t1.move_mru(page)
-
-            if miss:
+                miss = True
                 miss_count += 1
+                if b1.contains(page):
+                    p = min(p + max(1, b2.size() / b1.size()), self.cache_size)
+                    replace(page)
+                    b1.remove(page)
+                    t2.move_mru(page)
+                elif b2.contains(page):
+                    p = max(p - max(1, b1.size() / b2.size()), 0)
+                    replace(page)
+                    b2.remove(page)
+                    t2.move_mru(page)
+                else:
+                    if t1.size() + b1.size() == self.cache_size:
+                        if t1.size() < self.cache_size:
+                            b1.pop()
+                            replace(page)
+                        else:
+                            t1.pop()
+                    elif t1.size() + b1.size() < self.cache_size:
+                        total_size = t1.size() + t2.size() + b1.size() + b2.size()
+                        if total_size >= self.cache_size:
+                            if total_size == 2 * self.cache_size:
+                                b2.pop()
+                            replace(page)
+
+                    t1.move_mru(page)
 
             self.write_action(
                 miss, page, {**t1.get_cache(), **t2.get_cache()}.keys(), summary)
