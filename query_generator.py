@@ -39,7 +39,8 @@ def generate_triangular_distribution(page_num, query_length, left=1, mode=1):
 # generate #query_length page requests with fix radios
 # 'radios' contains the radio of the appreaence frequency of all pages
 # Ex: 5 pages, with radios = [4,2,2,1,1], the page 1 will apprear 4 time as frequent as page 4 and 5
-def generate_ratio_distribution(page_num: int, query_length: int, radios: list[int]):
+
+def generate_ratio_distribution(page_num: int, query_length: int, radios: list()):
     if page_num != len(radios):
         print("Error")
         return []
