@@ -182,26 +182,29 @@ class cache:
         for i in range(self.page_request_count):
             page = self.requests[i]
             miss = False
+            if (page_amount.get(page) != None):
+                page_amount[page] += 1
+            else:
+                page_amount[page] = 1
             if page not in cache:
                 miss = True
                 miss_count += 1
                 if len(cache) == self.cache_size:
-                    LFU_count = MAXINT
-                    for element in page_amount:
-                        if LFU_count > page_amount[element]:
-                            LFU_count = page_amount[element]
-                            LFU_page = element
-                    
-                    cache.remove(LFU_page)
-                    page_amount.pop(LFU_page)
-                    
-                cache.append(page)
-                page_amount[page] = 1
-            else:
-                page_amount[page] += 1
+                    lowestIndex = 0
+                    for i in range (1, self.cache_size):
+                        if page_amount[cache[i]] < page_amount[cache[lowestIndex]]:
+                            lowestIndex = i
+                        
+                    if page_amount[page] > page_amount[cache[lowestIndex]]:
+                        cache[lowestIndex] = page
+                                       
+                else:
+                    cache.append(page)
             
             self.write_action(miss, page, cache, summary)
 
+        for element in page_amount:
+            print("page: " + str(element) + "  number: " + str(page_amount[element]))
         self.write_summary(miss_count, summary)
         summary.close()
     
