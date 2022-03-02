@@ -42,6 +42,11 @@ TRIANGLE_DISTRIBUTION = 2
 ARBITARY_RADIO_DISTRIBUTION = 3
 WRITE_TO_FILE = False
 
+# Test radios
+# 4 4 4 2 2 2 2 1 1 1 1 1 1 1 1 1 1 1 1 1
+
+# 100 100 100 100 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+
 def interface():
     print(WELCOME)
     while(1):
