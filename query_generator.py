@@ -42,7 +42,7 @@ def generate_triangular_distribution(page_num, query_length, left=1, mode=1):
 
 def generate_ratio_distribution(page_num: int, query_length: int, radios: list()):
     if page_num != len(radios):
-        print("Error")
+        print("Error, page_num not equal to len of radios\n")
         return []
 
     draw_bag = []
@@ -51,7 +51,7 @@ def generate_ratio_distribution(page_num: int, query_length: int, radios: list()
             draw_bag.append(i+1)
 
     length = len(draw_bag)
-    print(draw_bag)
+    # print(draw_bag)
     requests = []
     for _ in range(query_length):
         draw = np.random.randint(0, length-1)
