@@ -330,6 +330,7 @@ class cache:
                 miss, page, {**t1.get_cache(), **t2.get_cache()}.keys(), summary)
         self.write_summary(miss_count, summary)
         summary.close()
+        return miss_count
 
     def set_cache_size(self, cache_size):
         self.CACHE_SIZE = cache_size
