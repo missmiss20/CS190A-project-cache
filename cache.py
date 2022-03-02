@@ -12,9 +12,12 @@ PAGE_NUM = 20
 PAGE_REQUEST_NUM = 100
 CACHE_SIZE = 5
 
+NORMAL_DISTRIBUTION = 1
+TRIANGLE_DISTRIBUTION = 2
+ARBITARY_RADIO_DISTRIBUTION = 3
 
 class cache:
-    def __init__(self, page_num, page_request_count, cache_size=100):
+    def __init__(self, page_num, page_request_count, cache_size=100, write_to_file=True):
         # number of distinct pages
         self.page_num = page_num
         # number of page requests
@@ -23,6 +26,7 @@ class cache:
         self.cache_size = cache_size
         # a series of page requests
         self.requests = None
+        self.write_to_file = write_to_file
 
     # setter for page_num, page_request_count, and cache_size
     def reset_test_values(self, total_page_num, page_request_count, cache_size):
@@ -31,25 +35,39 @@ class cache:
         self.cache_size = cache_size
 
     # randomly generate a series of page requests, and set the page requests
-    def generate_requests(self):
+    def generate_requests(self, request_type=0, ratios=[]):
         requests = []
-        for _ in range(self.page_request_count):
-            requests.append(random.randint(1, self.page_num))
+        if request_type == 0:
+            for _ in range(self.page_request_count):
+                requests.append(random.randint(1, self.page_num))
 
+        elif request_type == NORMAL_DISTRIBUTION:
+            requests = generate_normal_distribution(self.page_num, self.page_request_count)
+        elif request_type == TRIANGLE_DISTRIBUTION:
+            requests = generate_triangular_distribution(self.page_num, self.page_request_count)
+        elif request_type == ARBITARY_RADIO_DISTRIBUTION:
+            requests = generate_ratio_distribution(self.page_num, self.page_request_count, ratios)
+        
         self.set_requests(requests)
 
     # setter for page requests
     def set_requests(self, requests):
         self.requests = requests
+    def set_radios(self, radios):
+        self.ratios = radios
 
     # three output writter functions
     def get_output_handle(self, policy):
+        if not self.write_to_file:
+            return 0
         summary = open(f"{policy}_output.txt", "w")
         summary.write(
             f"{policy} cache with page requests:\n{self.requests}\n\n")
         return summary
 
     def write_action(self, miss, page, cache, summary):
+        if not self.write_to_file:
+            return
         if miss:
             summary.write("Cache miss!")
         else:
@@ -57,6 +75,8 @@ class cache:
         summary.write(f" Current Cache: {cache}\n")
 
     def write_summary(self, miss_count, summary):
+        if not self.write_to_file:
+            return
         summary.write(
             f"\nTotal miss count: {miss_count} out of {self.page_request_count} requests.\n")
 
@@ -80,7 +100,8 @@ class cache:
             self.write_action(miss, page, cache, summary)
 
         self.write_summary(miss_count, summary)
-        summary.close()
+        if self.write_to_file:
+            summary.close()
         return miss_count
     
     # simulate a cache with a Last In First Out caching Policy
@@ -103,7 +124,8 @@ class cache:
             self.write_action(miss, page, cache, summary)
 
         self.write_summary(miss_count, summary)
-        summary.close()
+        if self.write_to_file:
+            summary.close()
         return miss_count
     
     #use array of size self.cache_size, simiar to FIFO except add to front of list and move page number to front of list on cache hit
@@ -132,7 +154,8 @@ class cache:
             self.write_action(miss, page, cache, summary)
 
         self.write_summary(miss_count, summary)
-        summary.close()
+        if self.write_to_file:
+            summary.close()
         return miss_count
     
     #use 2 arrays of size self.cache_size, one for pages, one for markings, append new pages to back until full, then follow 1-bit lru
@@ -174,8 +197,9 @@ class cache:
             self.write_action(miss, page, cache, summary)
 
         self.write_summary(miss_count, summary)
-        summary.close()
-        return 0
+        if self.write_to_file:
+            summary.close()
+        return miss_count
 
     # simulate a cache with a Least Frequently Used caching Policy
 
@@ -209,10 +233,11 @@ class cache:
             
             self.write_action(miss, page, cache, summary)
 
-        for element in page_amount:
-            print("page: " + str(element) + "  number: " + str(page_amount[element]))
+        # for element in page_amount:
+        #     print("page: " + str(element) + "  number: " + str(page_amount[element]))
         self.write_summary(miss_count, summary)
-        summary.close()
+        if self.write_to_file:
+            summary.close()
         return miss_count
     
     # LFD in O(NlogK) time, where N is the number of requests and K is the cache size
@@ -247,7 +272,8 @@ class cache:
             self.write_action(miss, page, cache, summary)
 
         self.write_summary(miss_count, summary)
-        summary.close()
+        if self.write_to_file:
+            summary.close()
         return miss_count
 
     # simulate a cache with a Random page eviction Policy
@@ -272,7 +298,8 @@ class cache:
             self.write_action(miss, page, cache, summary)
 
         self.write_summary(miss_count, summary)
-        summary.close()
+        if self.write_to_file:
+            summary.close()
         return miss_count
 
     # adaptive cache replacement
@@ -329,7 +356,8 @@ class cache:
             self.write_action(
                 miss, page, {**t1.get_cache(), **t2.get_cache()}.keys(), summary)
         self.write_summary(miss_count, summary)
-        summary.close()
+        if self.write_to_file:
+            summary.close()
         return miss_count
 
     def set_cache_size(self, cache_size):
