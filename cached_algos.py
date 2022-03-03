@@ -35,15 +35,36 @@ if __name__ == "__main__":
 
     fifo_res = []
     lru_res = []
+
+    largest_delta = -float('inf')
+    ld_arr = []
+    smallest_delta = float('inf')
+    sd_arr = []
+    fifo_better = 0
+    lru_better = 0
+    same = 0
+
     for _ in range(100):
-        fifo_arr = [*range(100)]
-        random.shuffle(fifo_arr)
-        lru_arr = fifo_arr.copy()  # we want to see performance on same input
-        # print(f"original unsorted: {fifo_arr}")
+        arr = [*range(100)]
+        random.shuffle(arr)
+        fifo_arr = arr.copy()
+        lru_arr = arr.copy()  # we want to see performance on same input
         fifo_res.append(cached_quicksort(fifo_arr, FIFOCache(10)))
         lru_res.append(cached_quicksort(lru_arr, LRUCache(10)))
-        # print(f"fifo misses: {fifo_res[-1]}")
-        # print(f"lru misses: {lru_res[-1]}")
+        delta = fifo_res[-1] - lru_res[-1]
+        if delta > 0:
+            lru_better += 1
+        elif delta == 0:
+            same += 1
+        else:
+            fifo_better += 1
+        if delta > largest_delta:
+            largest_delta = delta
+            ld_arr = arr
+        if delta < smallest_delta:
+            smallest_delta = delta
+            sd_arr = arr
+
         
     fig, ax = plt.subplots()
     ax.plot([*range(100)], fifo_res, color="red", marker="o")
@@ -53,16 +74,12 @@ if __name__ == "__main__":
     ax2.plot([*range(100)], lru_res, color="blue", marker="o")
     fig.savefig('quicksort_results.jpg', format='jpeg')
 
-    fifo_better = 0
-    largest_delta = -float('inf')
-    smallest_delta = float('inf')
-    for i in range(100):
-        if fifo_res[i] < lru_res[i]:
-            fifo_better += 1
-        largest_delta = max(largest_delta, fifo_res[i] - lru_res[i])
-        smallest_delta = min(smallest_delta, fifo_res[i] - lru_res[i])
-    print(f"fifo outperforms lru on {fifo_better} out of {100} iterations, {fifo_better / 100}%")
-    print(f"fifo beat lru by a maximum of {largest_delta} cache misses")
-    print(f"lru beat fifo by a maximum of {-smallest_delta} cache misses")
+    print(f"fifo outperforms lru on {fifo_better} out of {100} iterations, {fifo_better}%")
+    print(f"lru outperforms fifo on {lru_better} out of {100} iterations, {lru_better}%")
+    print(f"fifo performs the same as lru on {same} out of {100} iterations, {same}%")
+    print(f"lru beat fifo by a maximum of {largest_delta} cache misses, on the following permutation")
+    print(ld_arr)
+    print(f"fifo beat lru by a maximum of {-smallest_delta} cache misses, on the following permutation")
+    print(sd_arr)
 
 
