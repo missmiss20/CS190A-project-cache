@@ -116,6 +116,6 @@ if __name__ == "__main__":
 
     print(f"lru performed best with {best_lru_misses} on the following permutation")
     print(blru_arr)
-    print(f"fifo performed worst with {worst_lru_misses} on the following permutation")
+    print(f"lru performed worst with {worst_lru_misses} on the following permutation")
     print(wlru_arr)
 
