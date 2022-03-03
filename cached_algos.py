@@ -36,6 +36,17 @@ if __name__ == "__main__":
     fifo_res = []
     lru_res = []
 
+    worst_fifo_misses = -float('inf')
+    wfifo_arr = []
+    best_fifo_misses = float('inf')
+    bfifo_arr = []
+
+    worst_lru_misses = -float('inf')
+    wlru_arr = []
+    best_lru_misses = float('inf')
+    blru_arr = []
+
+
     largest_delta = -float('inf')
     ld_arr = []
     smallest_delta = float('inf')
@@ -51,6 +62,22 @@ if __name__ == "__main__":
         lru_arr = arr.copy()  # we want to see performance on same input
         fifo_res.append(cached_quicksort(fifo_arr, FIFOCache(10)))
         lru_res.append(cached_quicksort(lru_arr, LRUCache(10)))
+
+        if fifo_res[-1] > worst_fifo_misses:
+            worst_fifo_misses = fifo_res[-1]
+            wfifo_arr = arr
+        elif fifo_res[-1] < best_fifo_misses:
+            best_fifo_misses = fifo_res[-1]
+            bfifo_arr = arr
+
+        if lru_res[-1] > worst_lru_misses:
+            worst_lru_misses = lru_res[-1]
+            wlru_arr = arr
+        elif lru_res[-1] < best_lru_misses:
+            best_lru_misses = lru_res[-1]
+            blru_arr = arr
+
+
         delta = fifo_res[-1] - lru_res[-1]
         if delta > 0:
             lru_better += 1
@@ -82,4 +109,13 @@ if __name__ == "__main__":
     print(f"fifo beat lru by a maximum of {-smallest_delta} cache misses, on the following permutation")
     print(sd_arr)
 
+    print(f"fifo performed best with {best_fifo_misses} on the following permutation")
+    print(bfifo_arr)
+    print(f"fifo performed worst with {worst_fifo_misses} on the following permutation")
+    print(wfifo_arr)
+
+    print(f"lru performed best with {best_lru_misses} on the following permutation")
+    print(blru_arr)
+    print(f"fifo performed worst with {worst_lru_misses} on the following permutation")
+    print(wlru_arr)
 
