@@ -1,6 +1,7 @@
 from math import floor
 from cached_ds import CachedArray
 from caches import FIFOCache, LRUCache
+import concurrent.futures
 import random
 import matplotlib.pyplot as plt
 
@@ -57,16 +58,18 @@ if __name__ == "__main__":
         results = [[] for _ in range(NUM_CACHES)]
 
         # score_mat[i][j] = k means that cache i beat cache j k times
-        score_mat = [[0 for _ in range(NUM_CACHES)] for _ in range(NUM_CACHES)] 
+        score_mat = [[0 for _ in range(NUM_CACHES)] for _ in range(NUM_CACHES)]
 
         for _ in range(ITERATIONS):
             arr = [*range(INPUT_SIZE)]
             random.shuffle(arr)
             caches = get_caches(cache_size)
-            for (i, cache) in enumerate(caches):
-                res = cached_quicksort(arr.copy(), cache)
-                # print(f"{cache.name()}:{res}")
-                results[i].append(res)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = {executor.submit(
+                    cached_quicksort, arr=arr.copy(), cache=cache): i for (i, cache) in enumerate(caches)}
+                for future in concurrent.futures.as_completed(futures):
+                    results[futures[future]].append(future.result())
+
 
             for i in range(NUM_CACHES):
                 for j in range(NUM_CACHES):
@@ -86,5 +89,6 @@ if __name__ == "__main__":
         ax.set_yticks(range(NUM_CACHES), labels=CACHE_NAMES)
         for i in range(NUM_CACHES):
             for j in range(NUM_CACHES):
-                text = ax.text(j, i, score_mat[i][j] / ITERATIONS, ha="center", va="center")
+                text = ax.text(
+                    j, i, score_mat[i][j] / ITERATIONS, ha="center", va="center")
         fig.savefig(f"qs_score{cache_size}.jpg", format="jpeg")
