@@ -79,7 +79,8 @@ def cached_fannkuch_redux(ins, cache):
         while cached_arr.get(j) <= cached_arr.get(k):
             j -= 1
         cached_arr.swap(j, k)
-        cached_arr.reverse(k + 1, n - 1) 
+        cached_arr.reverse(k + 1, n - 1)
+
 
 def cached_matrix_multiplication(ins, cache):
     cached_mat1 = Cached2DArray(ins[0], cache)
@@ -89,9 +90,21 @@ def cached_matrix_multiplication(ins, cache):
         for j in range(n):
             val = 0
             for k in range(n):
-               val += cached_mat1.get(i, k) * cached_mat2.get(k, j) 
+                val += cached_mat1.get(i, k) * cached_mat2.get(k, j)
     return cache.get_cache_misses()
 
+
+def cached_prime_sieve(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+    p = 2
+    while p * p <= len(ins) - 1:
+        if cached_arr.get(p):
+            for i in range(p * p, len(ins), p):
+                cached_arr.put(i, False)
+        p += 1
+
+    primes = [i for i in range(len(ins) - 1) if i >= 2 and cached_arr.get(i)]
+    return cache.get_cache_misses()
 
 
 def gen_shuffled_array(n):
@@ -171,7 +184,8 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
             f"{algorithm_full} cache miss distribution with k={cache_size}")
         ax.set_xticklabels(CACHE_NAMES)
         ax.set_ylabel("Cache misses")
-        fig.savefig(f"{algorithm_label}_res/{algorithm_label}{cache_size}.jpg", format="jpeg")
+        fig.savefig(
+            f"{algorithm_label}_res/{algorithm_label}{cache_size}.jpg", format="jpeg")
         plt.close(fig)
 
         fig, ax = plt.subplots()
@@ -182,8 +196,9 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
         for i in range(NUM_CACHES):
             for j in range(NUM_CACHES):
                 text = ax.text(
-                    j, i, score_mat[i][j] / iterations, ha="center", va="center")
-        fig.savefig(f"{algorithm_label}_res/{algorithm_label}_score{cache_size}.jpg", format="jpeg")
+                        j, i, f"{(score_mat[i][j] / iterations):.2f}", ha="center", va="center")
+        fig.savefig(
+            f"{algorithm_label}_res/{algorithm_label}_score{cache_size}.jpg", format="jpeg")
         plt.close(fig)
 
     for i in range(NUM_CACHES):
@@ -198,7 +213,8 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
     ax.set_title(f"{algorithm_full} average cache misses")
     ax.set_ylabel("Cache misses")
     ax.set_xlabel("Cache size (% of input size)")
-    fig.savefig(f"{algorithm_label}_res/{algorithm_label}_avgs.jpg", format="jpeg")
+    fig.savefig(
+        f"{algorithm_label}_res/{algorithm_label}_avgs.jpg", format="jpeg")
     plt.close(fig)
     end = time.perf_counter()
     print(f"{algorithm_full} benchmark finished in {end - start}s")
@@ -215,5 +231,6 @@ if __name__ == "__main__":
     benchmark_algorithm(cached_fannkuch_redux, "Fannkuch-redux",
                         "fr", lambda n: [i for i in range(1, n + 1)], iterations=3, input_size=7)
     benchmark_algorithm(cached_matrix_multiplication, "Matrix multiplication",
-            "matm", lambda n : [gen_shuffled_array(n), gen_shuffled_array(n)], iterations=5, input_size=400)
-
+                        "matm", lambda n: [gen_shuffled_array(n), gen_shuffled_array(n)], iterations=5, input_size=400)
+    benchmark_algorithm(cached_prime_sieve, "Prime sieve", "ps", lambda n: [
+                         True] * n, iterations=3, input_size=1000)
