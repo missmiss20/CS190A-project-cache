@@ -181,3 +181,39 @@ class RandomCache:
 
     def name(self):
         return "RAND"
+
+class Random1BitLRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = {}
+        self.list = []
+        self.bitset = []
+        self.misses = 0
+
+    def get(self, page):
+        if page not in self.cache:
+            self.misses += 1
+            if len(self.cache) < self.capacity:
+                self.cache[page] = len(self.list)
+                self.list.append(page)
+                self.bitset.append(1)
+                return
+
+            unset = [i for i, b in enumerate(self.list) if b == 0]
+            if len(unset) > 0:
+                repl_idx = random.choice(unset)
+            else:
+                self.bitset = [0] * len(self.bitset)
+                repl_idx = random.randint(0, len(self.list) - 1)
+            self.cache.pop(self.list[repl_idx])
+            self.list[repl_idx] = page
+            self.cache[page] = repl_idx
+            self.bitset[repl_idx] = 1
+        else:
+            self.bitset[self.cache[page]] = 1 
+
+    def get_cache_misses(self):
+        return self.misses
+
+    def name(self):
+        return "R1BLRU"
