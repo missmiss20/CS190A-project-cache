@@ -1,6 +1,7 @@
 from collections import defaultdict, deque
 from llist import dllist
 from lru_list import LRUList
+import random
 
 class ARCache:
     def __init__(self, capacity):
@@ -156,3 +157,27 @@ class LRUCache:
 
     def name(self):
         return "LRU"
+
+class RandomCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = set()
+        self.list = []
+        self.misses = 0
+
+    def get(self, page):
+        if page not in self.cache:
+            self.misses += 1
+            if len(self.list) == self.capacity:
+                idx = random.randint(0, self.capacity - 1)
+                self.cache.remove(self.list[idx])
+                self.list[idx] = page
+            else:
+                self.list.append(page)
+            self.cache.add(page)
+
+    def get_cache_misses(self):
+        return self.misses
+
+    def name(self):
+        return "RAND"
