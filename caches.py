@@ -1,6 +1,6 @@
-from collections import deque
+from collections import defaultdict, deque
+from llist import dllist
 from lru_list import LRUList
-
 
 class ARCache:
     def __init__(self, capacity):
@@ -79,6 +79,42 @@ class FIFOCache:
     def name(self):
         return "FIFO"
 
+
+class LFUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.nodes = {}
+        self.freq = defaultdict(dllist)
+        self.minfreq = 0
+        self.size = 0
+        self.misses = 0
+
+    def get(self, page):
+        if page in self.nodes:
+            node = self.nodes[page]
+            freq = node.value[1]
+            self.freq[freq].remove(node)
+            if self.minfreq == freq and len(self.freq[freq]) == 0:
+                self.minfreq += 1
+            self.nodes[page] = self.freq[freq + 1].appendright([page, freq + 1])
+        else:
+            self.misses += 1            
+            if self.size == self.capacity:
+                val = self.freq[self.minfreq].popleft()
+                self.nodes.pop(val[0])
+                self.size -= 1
+            node = self.freq[1].appendright([page, 1])
+            self.nodes[page] = node
+            self.minfreq = 1
+            self.size += 1
+        # print(self.nodes)
+        # print(self.freq)
+
+    def get_cache_misses(self):
+        return self.misses
+
+    def name(self):
+        return "LFU"
 
 class LRUCache:
     def __init__(self, capacity):

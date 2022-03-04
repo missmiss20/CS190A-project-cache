@@ -1,6 +1,6 @@
 from math import floor
 from cached_ds import CachedArray
-from caches import ARCache, FIFOCache, LRUCache
+from caches import ARCache, FIFOCache, LFUCache, LRUCache
 import concurrent.futures
 import random
 import matplotlib.pyplot as plt
@@ -36,7 +36,7 @@ def cached_quicksort(arr, cache):
 
 
 def get_caches(capacity):
-    return [ARCache(capacity), FIFOCache(capacity), LRUCache(capacity)]
+    return [ARCache(capacity), FIFOCache(capacity), LFUCache(capacity), LRUCache(capacity)]
 
 
 if __name__ == "__main__":
