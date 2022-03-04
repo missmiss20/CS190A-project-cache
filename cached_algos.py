@@ -81,6 +81,17 @@ def cached_fannkuch_redux(ins, cache):
         cached_arr.swap(j, k)
         cached_arr.reverse(k + 1, n - 1) 
 
+def cached_matrix_multiplication(ins, cache):
+    cached_mat1 = Cached2DArray(ins[0], cache)
+    cached_mat2 = Cached2DArray(ins[1], cache, offset=len(ins[0]))
+    n = cached_mat1.n
+    for i in range(n):
+        for j in range(n):
+            val = 0
+            for k in range(n):
+               val += cached_mat1.get(i, k) * cached_mat2.get(k, j) 
+    return cache.get_cache_misses()
+
 
 
 def gen_shuffled_array(n):
@@ -200,6 +211,9 @@ if __name__ == "__main__":
                         "dfs", gen_tree, read_only=True, input_size=1000)
     benchmark_algorithm(cached_quicksort, "Quicksort",
                         "qs", gen_shuffled_array)
-    # no need for multiple iterations, works the same on all inputs
+    # although input is static, want to show some distribution for random eviction policies
     benchmark_algorithm(cached_fannkuch_redux, "Fannkuch-redux",
-                        "fr", lambda n: [i for i in range(1, n + 1)], iterations=1, input_size=7)
+                        "fr", lambda n: [i for i in range(1, n + 1)], iterations=3, input_size=7)
+    benchmark_algorithm(cached_matrix_multiplication, "Matrix multiplication",
+            "matm", lambda n : [gen_shuffled_array(n), gen_shuffled_array(n)], iterations=5, input_size=400)
+
