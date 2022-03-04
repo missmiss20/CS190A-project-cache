@@ -17,6 +17,12 @@ class CachedArray:
         self.cache.get(index)
         self.elements[index] = val
 
+    def reverse(self, i, j):
+        while i < j:
+            self.swap(i, j)
+            i += 1
+            j -= 1
+
     def swap(self, i, j):
         tmp = self.get(i)
         self.put(i, self.get(j))

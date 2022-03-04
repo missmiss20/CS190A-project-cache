@@ -1,7 +1,8 @@
-from math import floor
+from math import ceil
 from cached_ds import CachedArray, Cached2DArray
 from caches import ARCache, FIFOCache, LFUCache, LIFOCache, LRUCache, RandomCache, Random1BitLRUCache
 import concurrent.futures
+import os
 import random
 import matplotlib.pyplot as plt
 import time
@@ -53,6 +54,23 @@ def cached_bubblesort(ins, cache):
     return cached_arr.get_cache_misses()
 
 
+def cached_permutations(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+    n = len(ins)
+    while True:
+        i = j = n - 1
+        while i > 0 and cached_arr.get(i - 1) >= cached_arr.get(i):
+            i -= 1
+        if i == 0:
+            return cached_arr.get_cache_misses()
+        k = i - 1
+        while cached_arr.get(j) <= cached_arr.get(k):
+            j -= 1
+        cached_arr.swap(j, k)
+        cached_arr.reverse(k + 1, n - 1) 
+
+
+
 def gen_shuffled_array(n):
     arr = [i for i in range(n)]
     random.shuffle(arr)
@@ -85,6 +103,7 @@ def get_caches(capacity):
 
 
 def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=100):
+    os.mkdir(f"{algorithm_label}_res")
     print(f"{algorithm_full} benchmark with cache_sizes={cache_sizes}, iterations={iterations}, and input_size={input_size}")
 
     tstart = time.perf_counter()
@@ -99,7 +118,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
     avg_misses = [[] for _ in range(NUM_CACHES)]
 
     for (csz, cache_sz_percentage) in enumerate(cache_sizes):
-        cache_size = floor(input_size * cache_sz_percentage)
+        cache_size = ceil(input_size * cache_sz_percentage)
 
         results = [[] for _ in range(NUM_CACHES)]
 
@@ -129,7 +148,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
             f"{algorithm_full} cache miss distribution with k={cache_size}")
         ax.set_xticklabels(CACHE_NAMES)
         ax.set_ylabel("Cache misses")
-        fig.savefig(f"{algorithm_label}{cache_size}.jpg", format="jpeg")
+        fig.savefig(f"{algorithm_label}_res/{algorithm_label}{cache_size}.jpg", format="jpeg")
         plt.close(fig)
 
         fig, ax = plt.subplots()
@@ -141,7 +160,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
             for j in range(NUM_CACHES):
                 text = ax.text(
                     j, i, score_mat[i][j] / iterations, ha="center", va="center")
-        fig.savefig(f"{algorithm_label}_score{cache_size}.jpg", format="jpeg")
+        fig.savefig(f"{algorithm_label}_res/{algorithm_label}_score{cache_size}.jpg", format="jpeg")
         plt.close(fig)
 
     for i in range(NUM_CACHES):
@@ -156,7 +175,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
     ax.set_title(f"{algorithm_full} average cache misses")
     ax.set_ylabel("Cache misses")
     ax.set_xlabel("Cache size (% of input size)")
-    fig.savefig(f"{algorithm_label}_avgs.jpg", format="jpeg")
+    fig.savefig(f"{algorithm_label}_res/{algorithm_label}_avgs.jpg", format="jpeg")
     plt.close(fig)
     end = time.perf_counter()
     print(f"{algorithm_full} benchmark finished in {end - start}s")
@@ -169,3 +188,5 @@ if __name__ == "__main__":
                         "dfs", gen_tree, read_only=True, input_size=1000)
     benchmark_algorithm(cached_quicksort, "Quicksort",
                         "qs", gen_shuffled_array)
+    benchmark_algorithm(cached_permutations, "Generate permutations",
+                        "perm", lambda n: [i for i in range(n)], iterations=10, input_size=7)
