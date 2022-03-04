@@ -116,6 +116,28 @@ class LFUCache:
     def name(self):
         return "LFU"
 
+class LIFOCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = set()
+        self.list = []
+        self.misses = 0
+
+    def get(self, page):
+        if page not in self.cache:
+            self.misses += 1
+            if len(self.cache) == self.capacity:
+                self.cache.remove(self.list.pop())
+            self.list.append(page)
+            self.cache.add(page)
+
+    def get_cache_misses(self):
+        return self.misses
+
+    def name(self):
+        return "LIFO"
+
+
 class LRUCache:
     def __init__(self, capacity):
         self.capacity = capacity

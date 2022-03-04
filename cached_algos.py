@@ -1,6 +1,6 @@
 from math import floor
 from cached_ds import CachedArray
-from caches import ARCache, FIFOCache, LFUCache, LRUCache
+from caches import ARCache, FIFOCache, LFUCache, LIFOCache, LRUCache
 import concurrent.futures
 import random
 import matplotlib.pyplot as plt
@@ -36,7 +36,7 @@ def cached_quicksort(arr, cache):
 
 
 def get_caches(capacity):
-    return [ARCache(capacity), FIFOCache(capacity), LFUCache(capacity), LRUCache(capacity)]
+    return [ARCache(capacity), FIFOCache(capacity), LFUCache(capacity), LIFOCache(capacity), LRUCache(capacity)]
 
 
 if __name__ == "__main__":
@@ -50,8 +50,9 @@ if __name__ == "__main__":
 
     # quicksort benchmarks
     # { algo: [avg_on_cache_sizes[0], ...] }
-    # avg_misses_by_cache_size = {}
-    for cache_sz_percentage in CACHE_SIZES:
+    avg_misses = [[] for _ in range(NUM_CACHES)]
+
+    for (csz, cache_sz_percentage) in enumerate(CACHE_SIZES):
         # total_cache_misses_per_cache = {}
         cache_size = floor(INPUT_SIZE * cache_sz_percentage)
 
@@ -59,6 +60,9 @@ if __name__ == "__main__":
 
         # score_mat[i][j] = k means that cache i beat cache j k times
         score_mat = [[0 for _ in range(NUM_CACHES)] for _ in range(NUM_CACHES)]
+
+        for i in range(NUM_CACHES):
+            avg_misses[i].append(0)
 
         for _ in range(ITERATIONS):
             arr = [*range(INPUT_SIZE)]
@@ -71,6 +75,7 @@ if __name__ == "__main__":
                     results[futures[future]].append(future.result())
 
             for i in range(NUM_CACHES):
+                avg_misses[i][csz] += results[i][-1]
                 for j in range(NUM_CACHES):
                     score_mat[i][j] += 1 if results[i][-1] < results[j][-1] else 0
 
@@ -91,3 +96,18 @@ if __name__ == "__main__":
                 text = ax.text(
                     j, i, score_mat[i][j] / ITERATIONS, ha="center", va="center")
         fig.savefig(f"qs_score{cache_size}.jpg", format="jpeg")
+        
+    for i in range(NUM_CACHES):
+        for j in range(len(CACHE_SIZES)):
+            avg_misses[i][j] /= ITERATIONS
+
+    fig, ax = plt.subplots()
+    for (i, cache_name) in enumerate(CACHE_NAMES):
+        line = ax.plot(CACHE_SIZES, avg_misses[i], label=cache_name)
+
+    ax.legend()
+    ax.set_title("Quicksort average cache misses")
+    ax.set_ylabel("Cache misses")
+    ax.set_xlabel("Cache size (% of input size)")
+    fig.savefig(f"qs_avgs.jpg", format="jpeg")
+
