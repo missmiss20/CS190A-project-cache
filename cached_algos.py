@@ -54,10 +54,22 @@ def cached_bubblesort(ins, cache):
     return cached_arr.get_cache_misses()
 
 
-def cached_permutations(ins, cache):
+# https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/fannkuchredux.html
+# skips checksum + counting, since we just care about running the program
+def cached_fannkuch_redux(ins, cache):
     cached_arr = CachedArray(ins, cache)
+
+    def fannkuch_redux(cached_arr):
+        while cached_arr.get(0) != 1:
+            cached_arr.reverse(0, cached_arr.get(0) - 1)
+
     n = len(ins)
     while True:
+        tmp = cached_arr.get_arr().copy()
+        fannkuch_redux(cached_arr)
+        for i, e in enumerate(tmp):
+            cached_arr.put(i, e)
+
         i = j = n - 1
         while i > 0 and cached_arr.get(i - 1) >= cached_arr.get(i):
             i -= 1
@@ -103,7 +115,7 @@ def get_caches(capacity):
 
 
 def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=100):
-    os.mkdir(f"{algorithm_label}_res")
+    os.makedirs(f"{algorithm_label}_res", exist_ok=True)
     print(f"{algorithm_full} benchmark with cache_sizes={cache_sizes}, iterations={iterations}, and input_size={input_size}")
 
     tstart = time.perf_counter()
@@ -188,5 +200,6 @@ if __name__ == "__main__":
                         "dfs", gen_tree, read_only=True, input_size=1000)
     benchmark_algorithm(cached_quicksort, "Quicksort",
                         "qs", gen_shuffled_array)
-    benchmark_algorithm(cached_permutations, "Generate permutations",
-                        "perm", lambda n: [i for i in range(n)], iterations=10, input_size=7)
+    # no need for multiple iterations, works the same on all inputs
+    benchmark_algorithm(cached_fannkuch_redux, "Fannkuch-redux",
+                        "fr", lambda n: [i for i in range(1, n + 1)], iterations=1, input_size=7)
