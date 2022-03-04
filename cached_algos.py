@@ -1,5 +1,5 @@
 from math import floor
-from cached_ds import CachedArray
+from cached_ds import CachedArray, Cached2DArray
 from caches import ARCache, FIFOCache, LFUCache, LIFOCache, LRUCache, RandomCache, Random1BitLRUCache
 import concurrent.futures
 import random
@@ -16,12 +16,8 @@ def cached_quicksort(ins, cache):
         for j in range(lo, hi):
             if cached_arr.get(j) <= pivot:
                 i += 1
-                tmp = cached_arr.get(i)
-                cached_arr.put(i, cached_arr.get(j))
-                cached_arr.put(j, tmp)
-        tmp = cached_arr.get(i + 1)
-        cached_arr.put(i + 1, cached_arr.get(hi))
-        cached_arr.put(hi, tmp)
+                cached_arr.swap(i, j)
+        cached_arr.swap(i + 1, hi)
         return i + 1
 
     def quicksort(cached_arr, lo, hi):
@@ -48,9 +44,26 @@ def cached_dfs(ins, cache):
     return cached_arr.get_cache_misses()
 
 
+def cached_bubblesort(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+    for j in range(len(ins) - 1, 0, -1):
+        for i in range(j):
+            if cached_arr.get(i) > cached_arr.get(i + 1):
+                cached_arr.swap(i, i + 1)
+    return cached_arr.get_cache_misses()
+
+
 def gen_shuffled_array(n):
     arr = [i for i in range(n)]
     random.shuffle(arr)
+    return arr
+
+
+def gen_weighted_array(n):
+    arr = []
+    for _ in range(n):
+        # arbitrary end value, but has to be nonnegative
+        arr.append(random.randint(0, n))
     return arr
 
 # randomly generates a tree with num_nodes nodes labeled
@@ -71,14 +84,14 @@ def get_caches(capacity):
     return [ARCache(capacity), FIFOCache(capacity), LFUCache(capacity), LIFOCache(capacity), LRUCache(capacity), RandomCache(capacity), Random1BitLRUCache(capacity)]
 
 
-def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only, cache_sizes, iterations, input_size):
+def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=100):
     print(f"{algorithm_full} benchmark with cache_sizes={cache_sizes}, iterations={iterations}, and input_size={input_size}")
 
     tstart = time.perf_counter()
     algorithm(input_generator(input_size), ARCache(1))
     tend = time.perf_counter()
     print(f"1 iteration of {algorithm_label} ran with ARC took {tend - tstart} seconds, estimated full completion time={len(cache_sizes) * iterations * (tend - tstart) * 4}")
-    
+
     start = time.perf_counter()
     NUM_CACHES = len(get_caches(0))
     CACHE_NAMES = [cache.name() for cache in get_caches(0)]
@@ -117,6 +130,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
         ax.set_xticklabels(CACHE_NAMES)
         ax.set_ylabel("Cache misses")
         fig.savefig(f"{algorithm_label}{cache_size}.jpg", format="jpeg")
+        plt.close(fig)
 
         fig, ax = plt.subplots()
         im = ax.imshow(score_mat, cmap="YlGn")
@@ -128,6 +142,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
                 text = ax.text(
                     j, i, score_mat[i][j] / iterations, ha="center", va="center")
         fig.savefig(f"{algorithm_label}_score{cache_size}.jpg", format="jpeg")
+        plt.close(fig)
 
     for i in range(NUM_CACHES):
         for j in range(len(cache_sizes)):
@@ -142,12 +157,15 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
     ax.set_ylabel("Cache misses")
     ax.set_xlabel("Cache size (% of input size)")
     fig.savefig(f"{algorithm_label}_avgs.jpg", format="jpeg")
+    plt.close(fig)
     end = time.perf_counter()
     print(f"{algorithm_full} benchmark finished in {end - start}s")
 
 
 if __name__ == "__main__":
-    benchmark_algorithm(cached_quicksort, "Quicksort",
-                        "qs", gen_shuffled_array, read_only=False, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=100)
+    benchmark_algorithm(cached_bubblesort, "Bubblesort",
+                        "bs", gen_shuffled_array, iterations=10)
     benchmark_algorithm(cached_dfs, "Depth-first search",
-                        "dfs", gen_tree, read_only=True, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=1000)
+                        "dfs", gen_tree, read_only=True, input_size=1000)
+    benchmark_algorithm(cached_quicksort, "Quicksort",
+                        "qs", gen_shuffled_array)
