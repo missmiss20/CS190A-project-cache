@@ -44,6 +44,9 @@ if __name__ == "__main__":
     ITERATIONS = 100
     INPUT_SIZE = 100
 
+    NUM_CACHES = len(get_caches(0))
+    CACHE_NAMES = [cache.name() for cache in get_caches(0)]
+
     # quicksort benchmarks
     # { algo: [avg_on_cache_sizes[0], ...] }
     # avg_misses_by_cache_size = {}
@@ -51,18 +54,37 @@ if __name__ == "__main__":
         # total_cache_misses_per_cache = {}
         cache_size = floor(INPUT_SIZE * cache_sz_percentage)
 
-        results = [[]] * len(get_caches(cache_size))
+        results = [[] for _ in range(NUM_CACHES)]
+
+        # score_mat[i][j] = k means that cache i beat cache j k times
+        score_mat = [[0 for _ in range(NUM_CACHES)] for _ in range(NUM_CACHES)] 
 
         for _ in range(ITERATIONS):
             arr = [*range(INPUT_SIZE)]
             random.shuffle(arr)
             caches = get_caches(cache_size)
             for (i, cache) in enumerate(caches):
-               results[i].append(cached_quicksort(arr.copy(), cache))
+                res = cached_quicksort(arr.copy(), cache)
+                # print(f"{cache.name()}:{res}")
+                results[i].append(res)
 
-        fig, axs = plt.subplots()
-        axs.boxplot(results)
-        axs.set_title(f"Quicksort cache miss distribution with k={cache_size}")
-        axs.set_xticklabels([cache.name() for cache in get_caches(0)])
-        axs.set_ylabel("Cache misses")
+            for i in range(NUM_CACHES):
+                for j in range(NUM_CACHES):
+                    score_mat[i][j] += 1 if results[i][-1] < results[j][-1] else 0
+
+        fig, ax = plt.subplots()
+        ax.boxplot(results)
+        ax.set_title(f"Quicksort cache miss distribution with k={cache_size}")
+        ax.set_xticklabels(CACHE_NAMES)
+        ax.set_ylabel("Cache misses")
         fig.savefig(f"qs{cache_size}.jpg", format="jpeg")
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(score_mat, cmap="YlGn")
+        ax.set_title(f"Quicksort score comparison with k={cache_size}")
+        ax.set_xticks(range(NUM_CACHES), labels=CACHE_NAMES)
+        ax.set_yticks(range(NUM_CACHES), labels=CACHE_NAMES)
+        for i in range(NUM_CACHES):
+            for j in range(NUM_CACHES):
+                text = ax.text(j, i, score_mat[i][j] / ITERATIONS, ha="center", va="center")
+        fig.savefig(f"qs_score{cache_size}.jpg", format="jpeg")
