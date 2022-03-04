@@ -17,6 +17,9 @@ class FIFOCache:
     def get_cache_misses(self):
         return self.misses
 
+    def name(self):
+        return "FIFO"
+
 
 class LRUCache:
     def __init__(self, capacity):
@@ -35,4 +38,7 @@ class LRUCache:
 
     def get_cache_misses(self):
         return self.misses
+
+    def name(self):
+        return "LRU"
 

@@ -1,3 +1,4 @@
+from math import floor
 from cached_ds import CachedArray
 from caches import FIFOCache, LRUCache
 import random
@@ -30,92 +31,38 @@ def cached_quicksort(arr, cache):
     quicksort(cached_arr, 0, len(arr) - 1)
     return cached_arr.get_cache_misses()
 
+# add new caches here
+
+
+def get_caches(capacity):
+    return [FIFOCache(capacity), LRUCache(capacity)]
+
 
 if __name__ == "__main__":
 
-    fifo_res = []
-    lru_res = []
+    CACHE_SIZES = [0.1, 0.25, 0.5, 0.75]
+    ITERATIONS = 100
+    INPUT_SIZE = 100
 
-    worst_fifo_misses = -float('inf')
-    wfifo_arr = []
-    best_fifo_misses = float('inf')
-    bfifo_arr = []
+    # quicksort benchmarks
+    # { algo: [avg_on_cache_sizes[0], ...] }
+    # avg_misses_by_cache_size = {}
+    for cache_sz_percentage in CACHE_SIZES:
+        # total_cache_misses_per_cache = {}
+        cache_size = floor(INPUT_SIZE * cache_sz_percentage)
 
-    worst_lru_misses = -float('inf')
-    wlru_arr = []
-    best_lru_misses = float('inf')
-    blru_arr = []
+        results = [[]] * len(get_caches(cache_size))
 
+        for _ in range(ITERATIONS):
+            arr = [*range(INPUT_SIZE)]
+            random.shuffle(arr)
+            caches = get_caches(cache_size)
+            for (i, cache) in enumerate(caches):
+               results[i].append(cached_quicksort(arr.copy(), cache))
 
-    largest_delta = -float('inf')
-    ld_arr = []
-    smallest_delta = float('inf')
-    sd_arr = []
-    fifo_better = 0
-    lru_better = 0
-    same = 0
-
-    for _ in range(100):
-        arr = [*range(100)]
-        random.shuffle(arr)
-        fifo_arr = arr.copy()
-        lru_arr = arr.copy()  # we want to see performance on same input
-        fifo_res.append(cached_quicksort(fifo_arr, FIFOCache(10)))
-        lru_res.append(cached_quicksort(lru_arr, LRUCache(10)))
-
-        if fifo_res[-1] > worst_fifo_misses:
-            worst_fifo_misses = fifo_res[-1]
-            wfifo_arr = arr
-        elif fifo_res[-1] < best_fifo_misses:
-            best_fifo_misses = fifo_res[-1]
-            bfifo_arr = arr
-
-        if lru_res[-1] > worst_lru_misses:
-            worst_lru_misses = lru_res[-1]
-            wlru_arr = arr
-        elif lru_res[-1] < best_lru_misses:
-            best_lru_misses = lru_res[-1]
-            blru_arr = arr
-
-
-        delta = fifo_res[-1] - lru_res[-1]
-        if delta > 0:
-            lru_better += 1
-        elif delta == 0:
-            same += 1
-        else:
-            fifo_better += 1
-        if delta > largest_delta:
-            largest_delta = delta
-            ld_arr = arr
-        if delta < smallest_delta:
-            smallest_delta = delta
-            sd_arr = arr
-
-        
-    fig, ax = plt.subplots()
-    ax.plot([*range(100)], fifo_res, color="red", marker="o")
-    ax.set_xlabel("iteration")
-    ax.set_ylabel("cache misses")
-    ax2 = ax.twinx()
-    ax2.plot([*range(100)], lru_res, color="blue", marker="o")
-    fig.savefig('quicksort_results.jpg', format='jpeg')
-
-    print(f"fifo outperforms lru on {fifo_better} out of {100} iterations, {fifo_better}%")
-    print(f"lru outperforms fifo on {lru_better} out of {100} iterations, {lru_better}%")
-    print(f"fifo performs the same as lru on {same} out of {100} iterations, {same}%")
-    print(f"lru beat fifo by a maximum of {largest_delta} cache misses, on the following permutation")
-    print(ld_arr)
-    print(f"fifo beat lru by a maximum of {-smallest_delta} cache misses, on the following permutation")
-    print(sd_arr)
-
-    print(f"fifo performed best with {best_fifo_misses} on the following permutation")
-    print(bfifo_arr)
-    print(f"fifo performed worst with {worst_fifo_misses} on the following permutation")
-    print(wfifo_arr)
-
-    print(f"lru performed best with {best_lru_misses} on the following permutation")
-    print(blru_arr)
-    print(f"lru performed worst with {worst_lru_misses} on the following permutation")
-    print(wlru_arr)
-
+        fig, axs = plt.subplots()
+        axs.boxplot(results)
+        axs.set_title(f"Quicksort cache miss distribution with k={cache_size}")
+        axs.set_xticklabels([cache.name() for cache in get_caches(0)])
+        axs.set_ylabel("Cache misses")
+        fig.savefig(f"qs{cache_size}.jpg", format="jpeg")
