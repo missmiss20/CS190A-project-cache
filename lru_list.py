@@ -2,8 +2,7 @@ from llist import dllist
 
 
 class LRUList:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self):
         self.list = dllist()
         self.cache = dict()
 

@@ -16,6 +16,7 @@ NORMAL_DISTRIBUTION = 1
 TRIANGLE_DISTRIBUTION = 2
 ARBITARY_RADIO_DISTRIBUTION = 3
 
+
 class cache:
     def __init__(self, page_num, page_request_count, cache_size=100, write_to_file=True):
         # number of distinct pages
@@ -42,17 +43,21 @@ class cache:
                 requests.append(random.randint(1, self.page_num))
 
         elif request_type == NORMAL_DISTRIBUTION:
-            requests = generate_normal_distribution(self.page_num, self.page_request_count)
+            requests = generate_normal_distribution(
+                self.page_num, self.page_request_count)
         elif request_type == TRIANGLE_DISTRIBUTION:
-            requests = generate_triangular_distribution(self.page_num, self.page_request_count)
+            requests = generate_triangular_distribution(
+                self.page_num, self.page_request_count)
         elif request_type == ARBITARY_RADIO_DISTRIBUTION:
-            requests = generate_ratio_distribution(self.page_num, self.page_request_count, ratios)
-        
+            requests = generate_ratio_distribution(
+                self.page_num, self.page_request_count, ratios)
+
         self.set_requests(requests)
 
     # setter for page requests
     def set_requests(self, requests):
         self.requests = requests
+
     def set_radios(self, radios):
         self.ratios = radios
 
@@ -103,7 +108,7 @@ class cache:
         if self.write_to_file:
             summary.close()
         return miss_count
-    
+
     # simulate a cache with a Last In First Out caching Policy
     def LIFO(self):
         summary = self.get_output_handle("LIFO")
@@ -127,9 +132,9 @@ class cache:
         if self.write_to_file:
             summary.close()
         return miss_count
-    
-    #use array of size self.cache_size, simiar to FIFO except add to front of list and move page number to front of list on cache hit
-    #on cache miss with full cache, remove last element of list (least recent access) and insert new page to front
+
+    # use array of size self.cache_size, simiar to FIFO except add to front of list and move page number to front of list on cache hit
+    # on cache miss with full cache, remove last element of list (least recent access) and insert new page to front
     def LRU(self):
         summary = self.get_output_handle("LRU")
 
@@ -157,40 +162,41 @@ class cache:
         if self.write_to_file:
             summary.close()
         return miss_count
-    
-    #use 2 arrays of size self.cache_size, one for pages, one for markings, append new pages to back until full, then follow 1-bit lru
+
+    # use 2 arrays of size self.cache_size, one for pages, one for markings, append new pages to back until full, then follow 1-bit lru
     def Rand_1Bit_LRU(self):
         summary = self.get_output_handle("Randomized_1Bit_LRU")
 
         cache = []
-        markings = [] #bools: true = marked, false = unmarked
+        markings = []  # bools: true = marked, false = unmarked
         miss_count = 0
 
         for i in range(self.page_request_count):
             page = self.requests[i]
             miss = False
-            if page not in cache: #if not full add to back, else replace random unmarked, else unmark all then replace random
+            if page not in cache:  # if not full add to back, else replace random unmarked, else unmark all then replace random
                 miss = True
                 miss_count += 1
                 unmarked = list()
-                for a,b in enumerate(markings):
+                for a, b in enumerate(markings):
                     if(not b):
                         unmarked.append(a)
-                
-                if len(cache) < self.cache_size: #just add to end of cache
+
+                if len(cache) < self.cache_size:  # just add to end of cache
                     cache.append(page)
                     markings.append(True)
-                elif(len(unmarked)>0): #at least one element of cache is unmarked, replace one random unmarked element
+                # at least one element of cache is unmarked, replace one random unmarked element
+                elif(len(unmarked) > 0):
                     replace_ind = random.choice(unmarked)
                     cache[replace_ind] = page
                     markings[replace_ind] = True
-                else: #set all to unmarked then pick a random unmarked to replace
+                else:  # set all to unmarked then pick a random unmarked to replace
                     for a in range(len(markings)):
                         markings[a] = False
-                    replace_ind = random.randint(0,len(cache)-1)
+                    replace_ind = random.randint(0, len(cache)-1)
                     cache[replace_ind] = page
                     markings[replace_ind] = True
-            else: #cache hit, remark this page if needed
+            else:  # cache hit, remark this page if needed
                 ind = cache.index(page)
                 markings[ind] = True
 
@@ -221,16 +227,16 @@ class cache:
                 miss_count += 1
                 if len(cache) == self.cache_size:
                     lowestIndex = 0
-                    for i in range (1, self.cache_size):
+                    for i in range(1, self.cache_size):
                         if page_amount[cache[i]] < page_amount[cache[lowestIndex]]:
                             lowestIndex = i
-                        
+
                     if page_amount[page] > page_amount[cache[lowestIndex]]:
                         cache[lowestIndex] = page
-                                       
+
                 else:
                     cache.append(page)
-            
+
             self.write_action(miss, page, cache, summary)
 
         # for element in page_amount:
@@ -239,7 +245,7 @@ class cache:
         if self.write_to_file:
             summary.close()
         return miss_count
-    
+
     # LFD in O(NlogK) time, where N is the number of requests and K is the cache size
     def LFD(self):
         summary = self.get_output_handle("LFD")
@@ -306,8 +312,8 @@ class cache:
     # adapted from https://www.usenix.org/legacy/events/fast03/tech/full_papers/megiddo/megiddo.pdf
     def ARC(self):
         p = 0
-        t1, b1, t2, b2 = LRUList("t1"), LRUList(
-            "b1"), LRUList("t2"), LRUList("b2")
+        t1, b1, t2, b2 = LRUList(), LRUList(
+        ), LRUList(), LRUList()
 
         def replace(element):
             if t1.size() > 0 and (t1.size() > p or (b2.contains(element) and t1.size() == p)):
