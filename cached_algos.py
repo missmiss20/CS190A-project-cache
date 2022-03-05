@@ -103,6 +103,19 @@ def cached_prime_sieve(ins, cache):
     primes = [i for i in range(len(ins) - 1) if i >= 2 and cached_arr.get(i)]
 
 
+def cached_selection_sort(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+
+    n = len(ins)
+    for i in range(n):
+        min_idx = i
+        for j in range(i + 1, n):
+            if cached_arr.get(min_idx) > cached_arr.get(j):
+                min_idx = j
+
+    cached_arr.swap(min_idx, i)
+
+
 def gen_shuffled_array(n):
     arr = [i for i in range(n)]
     random.shuffle(arr)
@@ -133,8 +146,10 @@ def gen_tree(num_nodes):
 def get_caches():
     return [cache_sim.arc, cache_sim.fifo, cache_sim.lfu, cache_sim.lifo, cache_sim.lru, cache_sim.rand, cache_sim.rand1bitlru, cache_sim.lfd]
 
+
 def get_cache_names():
     return ["ARC", "FIFO", "LFU", "LIFO", "LRU", "RAND", "R1B", "LFD"]
+
 
 def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=100):
     os.makedirs(f"{algorithm_label}_res", exist_ok=True)
@@ -158,7 +173,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
             avg_misses[i].append(0)
 
         for _ in range(iterations):
-            
+
             ins = input_generator(input_size)
             cache = TrackingCache()
             algorithm(ins=ins if read_only else ins.copy(), cache=cache)
@@ -171,7 +186,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
                 for future in concurrent.futures.as_completed(futures):
                     results[futures[future]].append(future.result())
 
-            #print(results)
+            # print(results)
 
             for i in range(NUM_CACHES):
                 avg_misses[i][csz] += results[i][-1]
@@ -221,16 +236,20 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
 
 
 if __name__ == "__main__":
-    benchmark_algorithm(cached_bubblesort, "Bubblesort",
-                        "bs", gen_shuffled_array, iterations=10)
+    """
     benchmark_algorithm(cached_dfs, "Depth-first search",
                         "dfs", gen_tree, read_only=True, input_size=1000)
-    benchmark_algorithm(cached_quicksort, "Quicksort",
-                        "qs", gen_shuffled_array)
-    # although input is static, want to show some distribution for random eviction policies
     benchmark_algorithm(cached_fannkuch_redux, "Fannkuch-redux",
                         "fr", lambda n: [i for i in range(1, n + 1)], iterations=3, input_size=7)
     benchmark_algorithm(cached_matrix_multiplication, "Matrix multiplication",
                         "matm", lambda n: [gen_shuffled_array(n), gen_shuffled_array(n)], iterations=5, input_size=400)
     benchmark_algorithm(cached_prime_sieve, "Prime sieve", "ps", lambda n: [
         True] * n, iterations=3, input_size=1000)
+    """
+
+    benchmark_algorithm(cached_bubblesort, "Bubblesort",
+                        "bs", gen_shuffled_array, iterations=10)
+    benchmark_algorithm(cached_quicksort, "Quicksort",
+                        "qs", gen_shuffled_array)
+    benchmark_algorithm(cached_selection_sort, "Selection sort",
+                        "ss", gen_shuffled_array, iterations=10)
