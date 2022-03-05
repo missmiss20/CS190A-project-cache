@@ -1,6 +1,6 @@
 from mimetypes import init
 import numpy as np
-
+import random
 # there are "page_num" distinct pages
 PAGE_NUM = 100
 # our query requests "query_length" pages
@@ -59,9 +59,37 @@ def generate_ratio_distribution(page_num: int, query_length: int, radios: list()
     
     return requests
 
+def generate_rotation_request(PAGE_NUM, PAGE_REQUEST_NUM):
+    rotation_request = []
+    for i in range(1, PAGE_REQUEST_NUM+1):
+        if i % PAGE_NUM != 0:
+            rotation_request.append(i % PAGE_NUM)
+        else:
+            rotation_request.append(PAGE_NUM)
+    return rotation_request
+
+
+# The Long Tail is an example of a Power Law probability distribution, such as the Pareto distribution or 80:20 rule. 
+# If 20% of objects are used 80% of the time and a way can be found to reduce the cost of obtaining that 20%, 
+# system performance will improve.
+def eighty_twenty_rule_caching(page_num: int, query_length: int):
+    
+    eighty_percent_mark = page_num / 5
+
+    requests = []
+    for _ in range(query_length):
+        eighty_twenty = random.randint(1, 5)
+        if eighty_twenty == 5:
+            draw = np.random.randint(eighty_percent_mark+1, page_num)
+        else:
+            draw = np.random.randint(1, eighty_percent_mark)
+        
+        requests.append(draw)
+
+    return requests
 
 if __name__ == "__main__":
-    page_num = 100
+    page_num = 102
     query_length = 100000
 
     # tests to validate generated page requests 
@@ -78,3 +106,15 @@ if __name__ == "__main__":
     # output = generate_ratio_distribution(5, 20, frequency_radio)
     # file = open("a.txt","w")
     # file.write(str(output))
+
+    # output = eighty_twenty_rule_caching(page_num, query_length)
+    # count1 = 0
+    # count58 = 0
+    # for i in output:
+    #     if i <= 20:
+    #         count1 += 1
+    #     else:
+    #         count58 += 1
+    
+    # print(count1)
+    # print(count58)
