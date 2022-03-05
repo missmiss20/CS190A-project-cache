@@ -1,7 +1,15 @@
 from collections import defaultdict, deque
+from sortedcontainers import SortedSet
 from llist import dllist
 from lru_list import LRUList
 import random
+
+class TrackingCache:
+    def __init__(self):
+        self.requests = []
+
+    def get(self, page):
+        self.requests.append(page)
 
 class ARCache:
     def __init__(self, capacity):
@@ -217,3 +225,43 @@ class Random1BitLRUCache:
 
     def name(self):
         return "R1BLRU"
+
+# hacky way of obtaining the page requests for lfd
+class LFDCache:
+    
+    def __init__(self, capacity):
+        self.requests = []
+
+    # doesn't do any cache stuff
+    def get(self, page):
+        self.requests.append(page)
+
+    def get_cache_misses(self):
+        # Precalculate indices of each page
+        occurrences = defaultdict(lambda: deque())
+        for i in range(len(self.requests)):
+            occurrences[self.requests[i]].append(i)
+
+        next_occurrence = lambda page : occurrences[page][0] if len(
+            occurrences[page]) > 0 else float('inf')
+
+        cache = set()
+        prio_set = SortedSet()  # contains (next_occurrence, page)
+        miss_count = 0
+        for i in range(len(self.requests)):
+            page = self.requests[i]
+            occurrences[page].popleft()
+            if page not in cache:
+                miss_count += 1
+                if len(cache) == self.capacity:
+                    cache.remove(prio_set.pop()[1])
+                cache.add(page)
+            else:
+                prio_set.remove((i, page))
+            prio_set.add((next_occurrence(page), page))
+
+        return miss_count
+
+    def name(self):
+        return "LFD"
+
