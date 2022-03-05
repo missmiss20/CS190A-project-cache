@@ -115,6 +115,18 @@ def cached_selection_sort(ins, cache):
 
     cached_arr.swap(min_idx, i)
 
+def cached_insertion_sort(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+
+    n = len(ins)
+    for i in range(1, n):
+        key = cached_arr.get(i)
+        j = i - 1
+        while j >= 0 and key < cached_arr.get(j):
+            cached_arr.put(j + 1, cached_arr.get(j))
+            j -= 1
+        cached_arr.put(j + 1, key)
+
 
 def gen_shuffled_array(n):
     arr = [i for i in range(n)]
@@ -248,8 +260,10 @@ if __name__ == "__main__":
     """
 
     benchmark_algorithm(cached_bubblesort, "Bubblesort",
-                        "bs", gen_shuffled_array, iterations=10)
+                        "bs", gen_shuffled_array, iterations=15)
+    benchmark_algorithm(cached_insertion_sort, "Insertion sort",
+                        "is", gen_shuffled_array, iterations=30)
     benchmark_algorithm(cached_quicksort, "Quicksort",
                         "qs", gen_shuffled_array)
     benchmark_algorithm(cached_selection_sort, "Selection sort",
-                        "ss", gen_shuffled_array, iterations=10)
+                        "ss", gen_shuffled_array, iterations=20)
