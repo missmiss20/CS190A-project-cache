@@ -1,11 +1,15 @@
-from cached_ds import CachedArray
-from caches import FIFOCache, LRUCache
+from math import ceil
+from cached_ds import CachedArray, Cached2DArray
+from caches import ARCache, FIFOCache, LFUCache, LIFOCache, LRUCache, RandomCache, Random1BitLRUCache
+import concurrent.futures
+import os
 import random
 import matplotlib.pyplot as plt
+import time
 
 
-def cached_quicksort(arr, cache):
-    cached_arr = CachedArray(arr, cache)
+def cached_quicksort(ins, cache):
+    cached_arr = CachedArray(ins, cache)
 
     def partition(cached_arr, lo, hi):
         i = lo - 1
@@ -13,12 +17,8 @@ def cached_quicksort(arr, cache):
         for j in range(lo, hi):
             if cached_arr.get(j) <= pivot:
                 i += 1
-                tmp = cached_arr.get(i)
-                cached_arr.put(i, cached_arr.get(j))
-                cached_arr.put(j, tmp)
-        tmp = cached_arr.get(i + 1)
-        cached_arr.put(i + 1, cached_arr.get(hi))
-        cached_arr.put(hi, tmp)
+                cached_arr.swap(i, j)
+        cached_arr.swap(i + 1, hi)
         return i + 1
 
     def quicksort(cached_arr, lo, hi):
@@ -27,95 +27,210 @@ def cached_quicksort(arr, cache):
             quicksort(cached_arr, lo, pivot - 1)
             quicksort(cached_arr, pivot + 1, hi)
 
-    quicksort(cached_arr, 0, len(arr) - 1)
+    quicksort(cached_arr, 0, len(ins) - 1)
     return cached_arr.get_cache_misses()
 
 
-if __name__ == "__main__":
+def cached_dfs(ins, cache):
+    cached_arr = CachedArray([i for i in range(len(ins))], cache)
 
-    fifo_res = []
-    lru_res = []
+    def dfs(node, cached_nodes, tree):
+        cached_nodes.get(node)
+        for adj in tree[node]:
+            dfs(adj, cached_nodes, tree)
+            # everytime we come back up, we need to get this node in memory so we can check its neighbors
+            cached_nodes.get(node)
 
-    worst_fifo_misses = -float('inf')
-    wfifo_arr = []
-    best_fifo_misses = float('inf')
-    bfifo_arr = []
-
-    worst_lru_misses = -float('inf')
-    wlru_arr = []
-    best_lru_misses = float('inf')
-    blru_arr = []
+    dfs(0, cached_arr, ins)
+    return cached_arr.get_cache_misses()
 
 
-    largest_delta = -float('inf')
-    ld_arr = []
-    smallest_delta = float('inf')
-    sd_arr = []
-    fifo_better = 0
-    lru_better = 0
-    same = 0
-
-    for _ in range(100):
-        arr = [*range(100)]
-        random.shuffle(arr)
-        fifo_arr = arr.copy()
-        lru_arr = arr.copy()  # we want to see performance on same input
-        fifo_res.append(cached_quicksort(fifo_arr, FIFOCache(10)))
-        lru_res.append(cached_quicksort(lru_arr, LRUCache(10)))
-
-        if fifo_res[-1] > worst_fifo_misses:
-            worst_fifo_misses = fifo_res[-1]
-            wfifo_arr = arr
-        elif fifo_res[-1] < best_fifo_misses:
-            best_fifo_misses = fifo_res[-1]
-            bfifo_arr = arr
-
-        if lru_res[-1] > worst_lru_misses:
-            worst_lru_misses = lru_res[-1]
-            wlru_arr = arr
-        elif lru_res[-1] < best_lru_misses:
-            best_lru_misses = lru_res[-1]
-            blru_arr = arr
+def cached_bubblesort(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+    for j in range(len(ins) - 1, 0, -1):
+        for i in range(j):
+            if cached_arr.get(i) > cached_arr.get(i + 1):
+                cached_arr.swap(i, i + 1)
+    return cached_arr.get_cache_misses()
 
 
-        delta = fifo_res[-1] - lru_res[-1]
-        if delta > 0:
-            lru_better += 1
-        elif delta == 0:
-            same += 1
-        else:
-            fifo_better += 1
-        if delta > largest_delta:
-            largest_delta = delta
-            ld_arr = arr
-        if delta < smallest_delta:
-            smallest_delta = delta
-            sd_arr = arr
+# https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/fannkuchredux.html
+# skips checksum + counting, since we just care about running the program
+def cached_fannkuch_redux(ins, cache):
+    cached_arr = CachedArray(ins, cache)
 
-        
+    def fannkuch_redux(cached_arr):
+        while cached_arr.get(0) != 1:
+            cached_arr.reverse(0, cached_arr.get(0) - 1)
+
+    n = len(ins)
+    while True:
+        tmp = cached_arr.get_arr().copy()
+        fannkuch_redux(cached_arr)
+        for i, e in enumerate(tmp):
+            cached_arr.put(i, e)
+
+        i = j = n - 1
+        while i > 0 and cached_arr.get(i - 1) >= cached_arr.get(i):
+            i -= 1
+        if i == 0:
+            return cached_arr.get_cache_misses()
+        k = i - 1
+        while cached_arr.get(j) <= cached_arr.get(k):
+            j -= 1
+        cached_arr.swap(j, k)
+        cached_arr.reverse(k + 1, n - 1)
+
+
+def cached_matrix_multiplication(ins, cache):
+    cached_mat1 = Cached2DArray(ins[0], cache)
+    cached_mat2 = Cached2DArray(ins[1], cache, offset=len(ins[0]))
+    n = cached_mat1.n
+    for i in range(n):
+        for j in range(n):
+            val = 0
+            for k in range(n):
+                val += cached_mat1.get(i, k) * cached_mat2.get(k, j)
+    return cache.get_cache_misses()
+
+
+def cached_prime_sieve(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+    p = 2
+    while p * p <= len(ins) - 1:
+        if cached_arr.get(p):
+            for i in range(p * p, len(ins), p):
+                cached_arr.put(i, False)
+        p += 1
+
+    primes = [i for i in range(len(ins) - 1) if i >= 2 and cached_arr.get(i)]
+    return cache.get_cache_misses()
+
+
+def gen_shuffled_array(n):
+    arr = [i for i in range(n)]
+    random.shuffle(arr)
+    return arr
+
+
+def gen_weighted_array(n):
+    arr = []
+    for _ in range(n):
+        # arbitrary end value, but has to be nonnegative
+        arr.append(random.randint(0, n))
+    return arr
+
+# randomly generates a tree with num_nodes nodes labeled
+# 0 to num_nodes, rooted at 0 in adjacency list form
+
+
+def gen_tree(num_nodes):
+    graph = {0: []}
+    for node in range(1, num_nodes):
+        parent = random.randint(0, node - 1)
+        graph[parent].append(node)
+        graph[node] = []
+
+    return graph
+
+
+def get_caches(capacity):
+    return [ARCache(capacity), FIFOCache(capacity), LFUCache(capacity), LIFOCache(capacity), LRUCache(capacity), RandomCache(capacity), Random1BitLRUCache(capacity)]
+
+
+def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=100):
+    os.makedirs(f"{algorithm_label}_res", exist_ok=True)
+    print(f"{algorithm_full} benchmark with cache_sizes={cache_sizes}, iterations={iterations}, and input_size={input_size}")
+
+    tstart = time.perf_counter()
+    algorithm(input_generator(input_size), ARCache(1))
+    tend = time.perf_counter()
+    print(f"1 iteration of {algorithm_label} ran with ARC took {tend - tstart} seconds, estimated full completion time={len(cache_sizes) * iterations * (tend - tstart) * 4}")
+
+    start = time.perf_counter()
+    NUM_CACHES = len(get_caches(0))
+    CACHE_NAMES = [cache.name() for cache in get_caches(0)]
+
+    avg_misses = [[] for _ in range(NUM_CACHES)]
+
+    for (csz, cache_sz_percentage) in enumerate(cache_sizes):
+        cache_size = ceil(input_size * cache_sz_percentage)
+
+        results = [[] for _ in range(NUM_CACHES)]
+
+        # score_mat[i][j] = k means that cache i beat cache j k times
+        score_mat = [[0 for _ in range(NUM_CACHES)] for _ in range(NUM_CACHES)]
+
+        for i in range(NUM_CACHES):
+            avg_misses[i].append(0)
+
+        for _ in range(iterations):
+            ins = input_generator(input_size)
+            caches = get_caches(cache_size)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = {executor.submit(
+                    algorithm, ins=ins if read_only else ins.copy(), cache=cache): i for (i, cache) in enumerate(caches)}
+                for future in concurrent.futures.as_completed(futures):
+                    results[futures[future]].append(future.result())
+
+            for i in range(NUM_CACHES):
+                avg_misses[i][csz] += results[i][-1]
+                for j in range(NUM_CACHES):
+                    score_mat[i][j] += 1 if results[i][-1] < results[j][-1] else 0
+
+        fig, ax = plt.subplots()
+        ax.boxplot(results)
+        ax.set_title(
+            f"{algorithm_full} cache miss distribution with k={cache_size}")
+        ax.set_xticklabels(CACHE_NAMES)
+        ax.set_ylabel("Cache misses")
+        fig.savefig(
+            f"{algorithm_label}_res/{algorithm_label}{cache_size}.jpg", format="jpeg")
+        plt.close(fig)
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(score_mat, cmap="YlGn")
+        ax.set_title(f"{algorithm_full} score comparison with k={cache_size}")
+        ax.set_xticks(range(NUM_CACHES), labels=CACHE_NAMES)
+        ax.set_yticks(range(NUM_CACHES), labels=CACHE_NAMES)
+        for i in range(NUM_CACHES):
+            for j in range(NUM_CACHES):
+                text = ax.text(
+                        j, i, f"{(score_mat[i][j] / iterations):.2f}", ha="center", va="center")
+        fig.savefig(
+            f"{algorithm_label}_res/{algorithm_label}_score{cache_size}.jpg", format="jpeg")
+        plt.close(fig)
+
+    for i in range(NUM_CACHES):
+        for j in range(len(cache_sizes)):
+            avg_misses[i][j] /= iterations
+
     fig, ax = plt.subplots()
-    ax.plot([*range(100)], fifo_res, color="red", marker="o")
-    ax.set_xlabel("iteration")
-    ax.set_ylabel("cache misses")
-    ax2 = ax.twinx()
-    ax2.plot([*range(100)], lru_res, color="blue", marker="o")
-    fig.savefig('quicksort_results.jpg', format='jpeg')
+    for (i, cache_name) in enumerate(CACHE_NAMES):
+        line = ax.plot(cache_sizes, avg_misses[i], label=cache_name)
 
-    print(f"fifo outperforms lru on {fifo_better} out of {100} iterations, {fifo_better}%")
-    print(f"lru outperforms fifo on {lru_better} out of {100} iterations, {lru_better}%")
-    print(f"fifo performs the same as lru on {same} out of {100} iterations, {same}%")
-    print(f"lru beat fifo by a maximum of {largest_delta} cache misses, on the following permutation")
-    print(ld_arr)
-    print(f"fifo beat lru by a maximum of {-smallest_delta} cache misses, on the following permutation")
-    print(sd_arr)
+    ax.legend()
+    ax.set_title(f"{algorithm_full} average cache misses")
+    ax.set_ylabel("Cache misses")
+    ax.set_xlabel("Cache size (% of input size)")
+    fig.savefig(
+        f"{algorithm_label}_res/{algorithm_label}_avgs.jpg", format="jpeg")
+    plt.close(fig)
+    end = time.perf_counter()
+    print(f"{algorithm_full} benchmark finished in {end - start}s")
 
-    print(f"fifo performed best with {best_fifo_misses} on the following permutation")
-    print(bfifo_arr)
-    print(f"fifo performed worst with {worst_fifo_misses} on the following permutation")
-    print(wfifo_arr)
 
-    print(f"lru performed best with {best_lru_misses} on the following permutation")
-    print(blru_arr)
-    print(f"lru performed worst with {worst_lru_misses} on the following permutation")
-    print(wlru_arr)
-
+if __name__ == "__main__":
+    benchmark_algorithm(cached_bubblesort, "Bubblesort",
+                        "bs", gen_shuffled_array, iterations=10)
+    benchmark_algorithm(cached_dfs, "Depth-first search",
+                        "dfs", gen_tree, read_only=True, input_size=1000)
+    benchmark_algorithm(cached_quicksort, "Quicksort",
+                        "qs", gen_shuffled_array)
+    # although input is static, want to show some distribution for random eviction policies
+    benchmark_algorithm(cached_fannkuch_redux, "Fannkuch-redux",
+                        "fr", lambda n: [i for i in range(1, n + 1)], iterations=3, input_size=7)
+    benchmark_algorithm(cached_matrix_multiplication, "Matrix multiplication",
+                        "matm", lambda n: [gen_shuffled_array(n), gen_shuffled_array(n)], iterations=5, input_size=400)
+    benchmark_algorithm(cached_prime_sieve, "Prime sieve", "ps", lambda n: [
+                         True] * n, iterations=3, input_size=1000)
