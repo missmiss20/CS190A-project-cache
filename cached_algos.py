@@ -115,6 +115,7 @@ def cached_selection_sort(ins, cache):
 
     cached_arr.swap(min_idx, i)
 
+
 def cached_insertion_sort(ins, cache):
     cached_arr = CachedArray(ins, cache)
 
@@ -163,7 +164,7 @@ def get_cache_names():
     return ["ARC", "FIFO", "LFU", "LIFO", "LRU", "RAND", "R1B", "LFD"]
 
 
-def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=100):
+def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], iterations=100, input_size=100):
     os.makedirs(f"{algorithm_label}_res", exist_ok=True)
     print(f"{algorithm_full} benchmark with cache_sizes={cache_sizes}, iterations={iterations}, and input_size={input_size}")
 
@@ -212,7 +213,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
         ax.set_xticklabels(CACHE_NAMES)
         ax.set_ylabel("Cache misses")
         fig.savefig(
-            f"{algorithm_label}_res/{algorithm_label}{cache_size}.jpg", format="jpeg")
+            f"{algorithm_label}_res/{algorithm_label}{cache_size}.jpg", format="jpeg", dpi=(200))
         plt.close(fig)
 
         fig, ax = plt.subplots()
@@ -225,7 +226,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
                 text = ax.text(
                     j, i, f"{(score_mat[i][j] / iterations):.2f}", ha="center", va="center")
         fig.savefig(
-            f"{algorithm_label}_res/{algorithm_label}_score{cache_size}.jpg", format="jpeg")
+            f"{algorithm_label}_res/{algorithm_label}_score{cache_size}.jpg", format="jpeg", dpi=(200))
         plt.close(fig)
 
     for i in range(NUM_CACHES):
@@ -241,29 +242,34 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
     ax.set_ylabel("Cache misses")
     ax.set_xlabel("Cache size (% of input size)")
     fig.savefig(
-        f"{algorithm_label}_res/{algorithm_label}_avgs.jpg", format="jpeg")
+        f"{algorithm_label}_res/{algorithm_label}_avgs.jpg", format="jpeg", dpi=(200))
     plt.close(fig)
     end = time.perf_counter()
     print(f"{algorithm_full} benchmark finished in {end - start}s")
 
 
 if __name__ == "__main__":
-    """
-    benchmark_algorithm(cached_dfs, "Depth-first search",
-                        "dfs", gen_tree, read_only=True, input_size=1000)
-    benchmark_algorithm(cached_fannkuch_redux, "Fannkuch-redux",
-                        "fr", lambda n: [i for i in range(1, n + 1)], iterations=3, input_size=7)
-    benchmark_algorithm(cached_matrix_multiplication, "Matrix multiplication",
-                        "matm", lambda n: [gen_shuffled_array(n), gen_shuffled_array(n)], iterations=5, input_size=400)
-    benchmark_algorithm(cached_prime_sieve, "Prime sieve", "ps", lambda n: [
-        True] * n, iterations=3, input_size=1000)
-    """
 
-    benchmark_algorithm(cached_bubblesort, "Bubblesort",
-                        "bs", gen_shuffled_array, iterations=15)
-    benchmark_algorithm(cached_insertion_sort, "Insertion sort",
-                        "is", gen_shuffled_array, iterations=30)
-    benchmark_algorithm(cached_quicksort, "Quicksort",
-                        "qs", gen_shuffled_array)
-    benchmark_algorithm(cached_selection_sort, "Selection sort",
-                        "ss", gen_shuffled_array, iterations=20)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_bubblesort,
+                       algorithm_full="Bubblesort", algorithm_label="bs", input_generator=gen_shuffled_array, iterations=25))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_insertion_sort,
+                       algorithm_full="Insertion sort", algorithm_label="is", input_generator=gen_shuffled_array, iterations=100))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_quicksort,
+                       algorithm_full="Quicksort", algorithm_label="qs", input_generator=gen_shuffled_array, iterations=200))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_selection_sort,
+                       algorithm_full="Selection sort", algorithm_label="ss", input_generator=gen_shuffled_array, iterations=50))
+
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_dfs,
+                       algorithm_full="Depth-first search", algorithm_label="dfs", input_generator=gen_tree, read_only=True, iterations=200))
+
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_fannkuch_redux,
+                                       algorithm_full="Fannkuch-redux", algorithm_label="fr", input_generator=lambda n: [i for i in range(1, n + 1)], iterations=3, input_size=7))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_matrix_multiplication,
+                                       algorithm_full="Matrix multiplication", algorithm_label="matm", input_generator=lambda n: [gen_shuffled_array(n), gen_shuffled_array(n)]))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_prime_sieve,
+                                       algorithm_full="Prime sieve", algorithm_label="ps", input_generator=lambda n: [True] * n))
+
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
