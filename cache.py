@@ -373,9 +373,12 @@ class cache:
         self.PAGE_REQUESTS_COUNT = page_request_count
 
 
+
 if __name__ == "__main__":
     mycache = cache(PAGE_NUM, PAGE_REQUEST_NUM, CACHE_SIZE)
-    mycache.generate_requests()
+    # mycache.generate_requests()
+    rotation_request = []
+    mycache.set_requests(generate_rotation_request(PAGE_NUM, PAGE_REQUEST_NUM))
     mycache.FIFO()
     mycache.LIFO()
     mycache.LFD()
