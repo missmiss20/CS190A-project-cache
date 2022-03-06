@@ -72,7 +72,7 @@ def generate_rotation_request(PAGE_NUM, PAGE_REQUEST_NUM):
 # The Long Tail is an example of a Power Law probability distribution, such as the Pareto distribution or 80:20 rule. 
 # If 20% of objects are used 80% of the time and a way can be found to reduce the cost of obtaining that 20%, 
 # system performance will improve.
-def eighty_twenty_rule_caching(page_num: int, query_length: int):
+def pareto_distribution(page_num: int, query_length: int):
     
     eighty_percent_mark = page_num / 5
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     # file = open("a.txt","w")
     # file.write(str(output))
 
-    # output = eighty_twenty_rule_caching(page_num, query_length)
+    # output = pareto_distribution(page_num, query_length)
     # count1 = 0
     # count58 = 0
     # for i in output:
