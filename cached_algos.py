@@ -209,16 +209,16 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
         fig, ax = plt.subplots()
         ax.boxplot(results)
         ax.set_title(
-            f"{algorithm_full} cache miss distribution with k={cache_size}")
+            f"{algorithm_full} cache miss distribution with k={cache_sz_percentage}")
         ax.set_xticklabels(CACHE_NAMES)
         ax.set_ylabel("Cache misses")
         fig.savefig(
-            f"{algorithm_label}_res/{algorithm_label}{cache_size}.jpg", format="jpeg", dpi=(200))
+            f"{algorithm_label}_res/{algorithm_label}{cache_sz_percentage}.jpg", format="jpeg", dpi=(200))
         plt.close(fig)
 
         fig, ax = plt.subplots()
         im = ax.imshow(score_mat, cmap="YlGn")
-        ax.set_title(f"{algorithm_full} score comparison with k={cache_size}")
+        ax.set_title(f"{algorithm_full} score comparison with k={cache_sz_percentage}")
         ax.set_xticks(range(NUM_CACHES), labels=CACHE_NAMES)
         ax.set_yticks(range(NUM_CACHES), labels=CACHE_NAMES)
         for i in range(NUM_CACHES):
@@ -226,7 +226,7 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
                 text = ax.text(
                     j, i, f"{(score_mat[i][j] / iterations):.2f}", ha="center", va="center")
         fig.savefig(
-            f"{algorithm_label}_res/{algorithm_label}_score{cache_size}.jpg", format="jpeg", dpi=(200))
+            f"{algorithm_label}_res/{algorithm_label}_score{cache_sz_percentage}.jpg", format="jpeg", dpi=(200))
         plt.close(fig)
 
     for i in range(NUM_CACHES):
