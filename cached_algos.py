@@ -1,9 +1,10 @@
 from math import ceil
 from cached_ds import CachedArray, Cached2DArray
-from caches import ARCache, FIFOCache, LFUCache, LIFOCache, LRUCache, RandomCache, Random1BitLRUCache
+from caches import TrackingCache
 import concurrent.futures
 import os
 import random
+import cache_sim
 import matplotlib.pyplot as plt
 import time
 
@@ -28,7 +29,6 @@ def cached_quicksort(ins, cache):
             quicksort(cached_arr, pivot + 1, hi)
 
     quicksort(cached_arr, 0, len(ins) - 1)
-    return cached_arr.get_cache_misses()
 
 
 def cached_dfs(ins, cache):
@@ -42,7 +42,6 @@ def cached_dfs(ins, cache):
             cached_nodes.get(node)
 
     dfs(0, cached_arr, ins)
-    return cached_arr.get_cache_misses()
 
 
 def cached_bubblesort(ins, cache):
@@ -51,7 +50,6 @@ def cached_bubblesort(ins, cache):
         for i in range(j):
             if cached_arr.get(i) > cached_arr.get(i + 1):
                 cached_arr.swap(i, i + 1)
-    return cached_arr.get_cache_misses()
 
 
 # https://benchmarksgame-team.pages.debian.net/benchmarksgame/description/fannkuchredux.html
@@ -74,7 +72,7 @@ def cached_fannkuch_redux(ins, cache):
         while i > 0 and cached_arr.get(i - 1) >= cached_arr.get(i):
             i -= 1
         if i == 0:
-            return cached_arr.get_cache_misses()
+            break
         k = i - 1
         while cached_arr.get(j) <= cached_arr.get(k):
             j -= 1
@@ -91,7 +89,6 @@ def cached_matrix_multiplication(ins, cache):
             val = 0
             for k in range(n):
                 val += cached_mat1.get(i, k) * cached_mat2.get(k, j)
-    return cache.get_cache_misses()
 
 
 def cached_prime_sieve(ins, cache):
@@ -104,7 +101,32 @@ def cached_prime_sieve(ins, cache):
         p += 1
 
     primes = [i for i in range(len(ins) - 1) if i >= 2 and cached_arr.get(i)]
-    return cache.get_cache_misses()
+
+
+def cached_selection_sort(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+
+    n = len(ins)
+    for i in range(n):
+        min_idx = i
+        for j in range(i + 1, n):
+            if cached_arr.get(min_idx) > cached_arr.get(j):
+                min_idx = j
+
+    cached_arr.swap(min_idx, i)
+
+
+def cached_insertion_sort(ins, cache):
+    cached_arr = CachedArray(ins, cache)
+
+    n = len(ins)
+    for i in range(1, n):
+        key = cached_arr.get(i)
+        j = i - 1
+        while j >= 0 and key < cached_arr.get(j):
+            cached_arr.put(j + 1, cached_arr.get(j))
+            j -= 1
+        cached_arr.put(j + 1, key)
 
 
 def gen_shuffled_array(n):
@@ -134,22 +156,21 @@ def gen_tree(num_nodes):
     return graph
 
 
-def get_caches(capacity):
-    return [ARCache(capacity), FIFOCache(capacity), LFUCache(capacity), LIFOCache(capacity), LRUCache(capacity), RandomCache(capacity), Random1BitLRUCache(capacity)]
+def get_caches():
+    return [cache_sim.arc, cache_sim.fifo, cache_sim.lfu, cache_sim.lifo, cache_sim.lru, cache_sim.rand, cache_sim.rand1bitlru, cache_sim.lfd]
 
 
-def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.25, 0.5, 0.75], iterations=100, input_size=100):
+def get_cache_names():
+    return ["ARC", "FIFO", "LFU", "LIFO", "LRU", "RAND", "R1B", "LFD"]
+
+
+def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_generator, read_only=False, cache_sizes=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], iterations=100, input_size=100):
     os.makedirs(f"{algorithm_label}_res", exist_ok=True)
     print(f"{algorithm_full} benchmark with cache_sizes={cache_sizes}, iterations={iterations}, and input_size={input_size}")
 
-    tstart = time.perf_counter()
-    algorithm(input_generator(input_size), ARCache(1))
-    tend = time.perf_counter()
-    print(f"1 iteration of {algorithm_label} ran with ARC took {tend - tstart} seconds, estimated full completion time={len(cache_sizes) * iterations * (tend - tstart) * 4}")
-
     start = time.perf_counter()
-    NUM_CACHES = len(get_caches(0))
-    CACHE_NAMES = [cache.name() for cache in get_caches(0)]
+    CACHE_NAMES = get_cache_names()
+    NUM_CACHES = len(CACHE_NAMES)
 
     avg_misses = [[] for _ in range(NUM_CACHES)]
 
@@ -165,13 +186,20 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
             avg_misses[i].append(0)
 
         for _ in range(iterations):
+
             ins = input_generator(input_size)
-            caches = get_caches(cache_size)
+            cache = TrackingCache()
+            algorithm(ins=ins if read_only else ins.copy(), cache=cache)
+
+            evict_policies = get_caches()
+
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 futures = {executor.submit(
-                    algorithm, ins=ins if read_only else ins.copy(), cache=cache): i for (i, cache) in enumerate(caches)}
+                    policy, requests=cache.requests, capacity=cache_size): i for (i, policy) in enumerate(evict_policies)}
                 for future in concurrent.futures.as_completed(futures):
                     results[futures[future]].append(future.result())
+
+            # print(results)
 
             for i in range(NUM_CACHES):
                 avg_misses[i][csz] += results[i][-1]
@@ -181,24 +209,24 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
         fig, ax = plt.subplots()
         ax.boxplot(results)
         ax.set_title(
-            f"{algorithm_full} cache miss distribution with k={cache_size}")
+            f"{algorithm_full} cache miss distribution with k={cache_sz_percentage}")
         ax.set_xticklabels(CACHE_NAMES)
         ax.set_ylabel("Cache misses")
         fig.savefig(
-            f"{algorithm_label}_res/{algorithm_label}{cache_size}.jpg", format="jpeg")
+            f"{algorithm_label}_res/{algorithm_label}{cache_sz_percentage}.jpg", format="jpeg", dpi=(200))
         plt.close(fig)
 
         fig, ax = plt.subplots()
         im = ax.imshow(score_mat, cmap="YlGn")
-        ax.set_title(f"{algorithm_full} score comparison with k={cache_size}")
+        ax.set_title(f"{algorithm_full} score comparison with k={cache_sz_percentage}")
         ax.set_xticks(range(NUM_CACHES), labels=CACHE_NAMES)
         ax.set_yticks(range(NUM_CACHES), labels=CACHE_NAMES)
         for i in range(NUM_CACHES):
             for j in range(NUM_CACHES):
                 text = ax.text(
-                        j, i, f"{(score_mat[i][j] / iterations):.2f}", ha="center", va="center")
+                    j, i, f"{(score_mat[i][j] / iterations):.2f}", ha="center", va="center")
         fig.savefig(
-            f"{algorithm_label}_res/{algorithm_label}_score{cache_size}.jpg", format="jpeg")
+            f"{algorithm_label}_res/{algorithm_label}_score{cache_sz_percentage}.jpg", format="jpeg", dpi=(200))
         plt.close(fig)
 
     for i in range(NUM_CACHES):
@@ -214,23 +242,34 @@ def benchmark_algorithm(algorithm, algorithm_full, algorithm_label, input_genera
     ax.set_ylabel("Cache misses")
     ax.set_xlabel("Cache size (% of input size)")
     fig.savefig(
-        f"{algorithm_label}_res/{algorithm_label}_avgs.jpg", format="jpeg")
+        f"{algorithm_label}_res/{algorithm_label}_avgs.jpg", format="jpeg", dpi=(200))
     plt.close(fig)
     end = time.perf_counter()
     print(f"{algorithm_full} benchmark finished in {end - start}s")
 
 
 if __name__ == "__main__":
-    benchmark_algorithm(cached_bubblesort, "Bubblesort",
-                        "bs", gen_shuffled_array, iterations=10)
-    benchmark_algorithm(cached_dfs, "Depth-first search",
-                        "dfs", gen_tree, read_only=True, input_size=1000)
-    benchmark_algorithm(cached_quicksort, "Quicksort",
-                        "qs", gen_shuffled_array)
-    # although input is static, want to show some distribution for random eviction policies
-    benchmark_algorithm(cached_fannkuch_redux, "Fannkuch-redux",
-                        "fr", lambda n: [i for i in range(1, n + 1)], iterations=3, input_size=7)
-    benchmark_algorithm(cached_matrix_multiplication, "Matrix multiplication",
-                        "matm", lambda n: [gen_shuffled_array(n), gen_shuffled_array(n)], iterations=5, input_size=400)
-    benchmark_algorithm(cached_prime_sieve, "Prime sieve", "ps", lambda n: [
-                         True] * n, iterations=3, input_size=1000)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_bubblesort,
+                       algorithm_full="Bubblesort", algorithm_label="bs", input_generator=gen_shuffled_array, iterations=25))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_insertion_sort,
+                       algorithm_full="Insertion sort", algorithm_label="is", input_generator=gen_shuffled_array, iterations=100))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_quicksort,
+                       algorithm_full="Quicksort", algorithm_label="qs", input_generator=gen_shuffled_array, iterations=200))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_selection_sort,
+                       algorithm_full="Selection sort", algorithm_label="ss", input_generator=gen_shuffled_array, iterations=50))
+
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_dfs,
+                       algorithm_full="Depth-first search", algorithm_label="dfs", input_generator=gen_tree, read_only=True, iterations=200))
+
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_fannkuch_redux,
+                                       algorithm_full="Fannkuch-redux", algorithm_label="fr", input_generator=lambda n: [i for i in range(1, n + 1)], iterations=3, input_size=7))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_matrix_multiplication,
+                                       algorithm_full="Matrix multiplication", algorithm_label="matm", input_generator=lambda n: [gen_shuffled_array(n), gen_shuffled_array(n)]))
+        futures.append(executor.submit(benchmark_algorithm, algorithm=cached_prime_sieve,
+                                       algorithm_full="Prime sieve", algorithm_label="ps", input_generator=lambda n: [True] * n))
+
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
